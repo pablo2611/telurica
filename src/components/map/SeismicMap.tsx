@@ -135,7 +135,7 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
           map.addControl(new ml.FullscreenControl(), "bottom-right");
           map.addControl(new ml.ScaleControl({ unit: "metric" }), "bottom-left");
         }
-        map.on("load", () => {
+        map.once("style.load", () => {
           if (!map || disposed) return;
           const g = geoData as unknown as GeoFile;
           map.addSource("provinces", {
@@ -267,9 +267,19 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
     for (const l of ["f-glow", "f-lim", "f-cor", "f-focus"]) map.setLayoutProperty(l, "visibility", vis(v.faults));
     map.setLayoutProperty("ev-cols", "visibility", vis(v.columns));
     map.setLayoutProperty("ev-heat", "visibility", vis(v.heat));
+  }, [ready, v.basemap, v.faults, v.columns, v.heat]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
     map.setTerrain(v.terrain ? (TERRAIN as never) : null);
+  }, [ready, v.terrain]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
     if (interactive) map.easeTo({ pitch: v.terrain || v.columns ? Math.max(map.getPitch(), 50) : 0, duration: 800 });
-  }, [ready, v.basemap, v.terrain, v.faults, v.columns, v.heat, interactive]);
+  }, [ready, v.terrain, v.columns, interactive]);
 
   useEffect(() => {
     const map = mapRef.current;

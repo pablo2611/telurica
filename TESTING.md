@@ -11,3 +11,10 @@
 Revisión en navegador (Playwright, Chromium): las siete rutas cargan sin errores de consola con datos reales; en el Monitor, el clic abre el detalle; el cambio de período modifica los resultados; las reglas de alerta persisten tras recargar; la exportación CSV del Historial contiene las filas filtradas.
 
 Los datos ficticios solo existen dentro de `src/test/seismic.test.ts`.
+
+## Verificación del despliegue
+
+- `npm test`: 25 pruebas, incluida la conservación de los indicadores de impacto de USGS.
+- `npm run typecheck` y `npm run build` forman parte de CI. ESLint valida reglas de código y Prettier se ejecuta mediante `npm run format`.
+- Avisos conocidos: 10 de Fast Refresh por módulos que también exportan utilidades, y uno de dependencias de hooks en Análisis. TanStack avisa que `.inputValidator()` está obsoleto, pero el proyecto conserva la API solicitada. Vite informa del tamaño de los paquetes dinámicos de MapLibre y ECharts.
+- En el entorno local, el feed horario de USGS devolvió HTTP 403. En producción, la consulta al mismo endpoint desde Vercel respondió correctamente. El indicador distingue una respuesta satisfactoria de una fuente sin respuesta.
