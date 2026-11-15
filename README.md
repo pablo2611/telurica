@@ -37,12 +37,12 @@ Detecciones en vivo de EMSC y USGS, filtradas al territorio panameño y su zona 
 ```
 EMSC WebSocket (push) ─┐
                        ├─► navegador: filtro geográfico ─► "Detección en vivo" + sync inmediata
-USGS all_hour (30 s) ──┘                                         │
+USGS all_hour (servidor) ─┘                                         │
                                                                  ▼
              servidor (TanStack Start): USGS FDSN + EMSC FDSN ─► dedupe ─► clasificación ─► alertas
 ```
 
-1. El navegador abre `wss://www.seismicportal.eu/standing_order/websocket` (EMSC) y consulta el feed `all_hour.geojson` de USGS cada 30 s.
+1. El navegador abre `wss://www.seismicportal.eu/standing_order/websocket` (EMSC) y solicita cada 30 s el feed `all_hour.geojson` de USGS a una server function con caché compartida. El servidor llama al endpoint oficial y filtra su recuadro.
 2. Si aparece un sismo dentro de Panamá o a ≤ 150 km de su costa, se muestra al instante como **dato preliminar** y se pide al servidor una sincronización sin caché.
 3. El servidor consolida ambas agencias (deduplicación por hora, distancia y magnitud) y las reglas de alerta se evalúan sobre esos datos confirmados.
 

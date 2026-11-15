@@ -43,7 +43,7 @@ export function LiveBadge({ className, compact = false }: { className?: string; 
   return (
     <span
       className={cn("inline-flex items-center gap-2 rounded-full border border-hairline bg-surface/70 px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em]", className)}
-      title={`WebSocket EMSC: ${WS_LABEL[rt.ws]} · Feed USGS: ${rt.lastPollAt ? `consultado ${fmtTime(rt.lastPollAt, true)}` : "pendiente"}`}
+      title={`WebSocket EMSC: ${WS_LABEL[rt.ws]} · Feed USGS: ${rt.lastPollAt ? `${rt.lastPollOk ? "operativo" : "sin respuesta"} · ${fmtTime(rt.lastPollAt, true)}` : "pendiente"}`}
     >
       <LiveDot tone={tone} pulse={tone === "ok"} />
       {!compact && <span className={tone === "ok" ? "text-ok" : "text-muted-foreground"}>{label}</span>}

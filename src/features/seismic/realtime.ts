@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from "react";
 import { QUERY_BBOX, classifyPoint } from "./geo";
+import { getUsgsLiveFeed } from "./live-feed.functions";
 
 /**
  * Capa de tiempo real en el navegador.
  *
  * - EMSC publica cada sismo nuevo por WebSocket (push, segundos después de su registro).
- * - USGS publica un feed GeoJSON de la última hora que se actualiza cada minuto (CORS abierto).
+ * - El servidor consulta el feed GeoJSON de la última hora de USGS y comparte la respuesta.
  *
  * Esta capa NO reemplaza el pipeline del servidor (normalización → filtro geográfico → deduplicación).
  * Solo detecta eventos nuevos cerca de Panamá lo antes posible y pide al servidor una sincronización
@@ -13,7 +14,6 @@ import { QUERY_BBOX, classifyPoint } from "./geo";
  */
 
 export const EMSC_WS_URL = "wss://www.seismicportal.eu/standing_order/websocket";
-export const USGS_LIVE_FEED = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson";
 export const USGS_POLL_MS = 30_000;
 const MAX_LIVE = 30;
 
@@ -180,7 +180,7 @@ export function parseEmscMessage(raw: string): Candidate | null {
 
 interface UsgsFeature {
   id?: string;
-  properties?: { mag?: number | null; magType?: string | null; place?: string | null; time?: number; url?: string | null; type?: string | null };
+  properties?: { mag?: number | null; magType?: string | null | undefined; place?: string | null | undefined; time?: number; url?: string | null | undefined; type?: string | null | undefined };
   geometry?: { coordinates?: (number | null)[] };
 }
 
@@ -265,12 +265,15 @@ function scheduleReconnect() {
   reconnectTimer = setTimeout(connectWs, delay);
 }
 
+let polling = false;
 async function pollUsgs() {
+  if (polling) return;
+  polling = true;
   try {
-    const res = await fetch(USGS_LIVE_FEED, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const body = (await res.json()) as { features?: UsgsFeature[] };
-    for (const f of body.features ?? []) {
+    const body = await getUsgsLiveFeed();
+    if (!started) return;
+    if (!body.ok) throw new Error("Feed USGS no disponible");
+    for (const f of body.features) {
       const c = parseUsgsFeature(f);
       if (!c) continue;
       // En la primera consulta solo son "nuevos" los sismos ocurridos después de abrir la página.
@@ -280,7 +283,9 @@ async function pollUsgs() {
     firstPollDone = true;
     set({ lastPollAt: new Date().toISOString(), lastPollOk: true });
   } catch {
-    set({ lastPollAt: new Date().toISOString(), lastPollOk: false });
+    if (started) set({ lastPollAt: new Date().toISOString(), lastPollOk: false });
+  } finally {
+    polling = false;
   }
 }
 
