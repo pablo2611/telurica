@@ -229,7 +229,9 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
             map.setPaintProperty("ev-pulse", "circle-radius", RZ(1 + k * 2.2) as never);
             map.setPaintProperty("ev-pulse", "circle-stroke-opacity", 0.85 * (1 - k));
           };
-          raf = requestAnimationFrame(tick);
+          if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            raf = requestAnimationFrame(tick);
+          }
           setReady(true);
         });
         map.on("error", (e) => console.warn("Mapa:", e.error?.message));
@@ -291,7 +293,7 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
     if (!ready || !map) return;
     map.setFilter("ev-selected", ["==", ["get", "id"], selectedId ?? ""]);
     const ev = events.find((e) => e.id === selectedId);
-    if (ev && interactive) map.flyTo({ center: [ev.primary.longitude, ev.primary.latitude], zoom: Math.max(map.getZoom(), 8), duration: 1200, essential: true });
+    if (ev && interactive) map.flyTo({ center: [ev.primary.longitude, ev.primary.latitude], zoom: Math.max(map.getZoom(), 8), duration: 1200 });
   }, [ready, selectedId, events, interactive]);
 
   return (
