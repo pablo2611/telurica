@@ -33,9 +33,9 @@ export function BlurText({
               <motion.span
                 key={`${li}-${wi}`}
                 className={cn("inline-block will-change-[filter,transform]", wordClassName)}
-                initial={reduce ? false : { opacity: 0, filter: "blur(12px)", y: 18 }}
+                initial={{ opacity: 0, filter: "blur(12px)", y: 18 }}
                 animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-                transition={{ duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] }}
+                transition={reduce ? { duration: 0 } : { duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] }}
               >
                 {w}
                 {wi < line.split(" ").length - 1 ? " " : ""}

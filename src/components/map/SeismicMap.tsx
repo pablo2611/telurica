@@ -156,7 +156,7 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
           map.addSource("columns", { type: "geojson", data: toColumns([]) });
           const colorExpr = ["match", ["get", "cls"], 1, cssColor("--mag-1"), 2, cssColor("--mag-2"), 3, cssColor("--mag-3"), 4, cssColor("--mag-4"), 5, cssColor("--mag-5"), cssColor("--mag-0")];
           const base = ["interpolate", ["exponential", 1.7], ["get", "mag"], 0, 2.5, 3, 4.5, 5, 10, 6, 16, 7.7, 30];
-          const RZ = (k: number) => ["interpolate", ["linear"], ["zoom"], 4, ["*", base, 0.6 * k], 7, ["*", base, k], 11, ["*", base, 2 * k]];
+          const RZ = (k: number, offset = 0) => ["interpolate", ["linear"], ["zoom"], 4, ["+", ["*", base, 0.6 * k], offset], 7, ["+", ["*", base, k], offset], 11, ["+", ["*", base, 2 * k], offset]];
           const radius = RZ(1);
           map.addLayer({ id: "ev-heat", type: "heatmap", source: "events", layout: { visibility: "none" }, paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "mag"], 1, 0.05, 5, 0.6, 7.7, 1], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 4, 14, 9, 36], "heatmap-opacity": 0.75, "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "#2b7a8c", 0.45, "#e9d75a", 0.7, "#f39a3c", 1, "#f0614f"] } as never });
           map.addLayer({ id: "ev-cols", type: "fill-extrusion", source: "columns", layout: { visibility: "none" }, paint: { "fill-extrusion-color": colorExpr as never, "fill-extrusion-height": ["get", "h"], "fill-extrusion-opacity": 0.85 } as never });
@@ -181,7 +181,7 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
           });
           map.addLayer({
             id: "ev-selected", type: "circle", source: "events", filter: ["==", ["get", "id"], ""],
-            paint: { "circle-radius": ["+", radius, 7] as never, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5, "circle-pitch-alignment": "map" },
+            paint: { "circle-radius": RZ(1, 7) as never, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5, "circle-pitch-alignment": "map" },
           });
           if (interactive) {
             const popup = new ml.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
