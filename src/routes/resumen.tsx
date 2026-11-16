@@ -106,18 +106,18 @@ function Resumen() {
           </div>
 
           {/* Panel en vivo */}
-          <SpotlightCard className="flex flex-col self-stretch bg-surface/80">
+          <SpotlightCard className="flex flex-col self-start bg-surface/80">
             <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
               <div>
                 <h2 className="font-display text-xl leading-none">Detecciones en vivo</h2>
-                <p className="mt-1.5 meta">Última hora · preliminares, se confirman en segundos</p>
+                <p className="mt-1.5 meta">Panamá y su zona marítima</p>
               </div>
               <Waves className="size-5 text-primary" aria-hidden="true" />
             </div>
-            <LiveFeed className="flex-1 px-4" maxHeight="22rem" />
+            <LiveFeed catalog={events} loading={isLoading} unavailable={isError || !!data?.sources.filter((source) => source.id === "usgs" || source.id === "emsc").every((source) => source.received === null)} />
             <div className="flex items-center justify-between gap-2 border-t border-hairline px-5 py-3 meta">
-              <span>{rt.lastPollAt ? `USGS consultado ${fmtTime(rt.lastPollAt, true)}` : "Conectando…"}</span>
-              <span>{rt.lastMessageAt ? `EMSC ${fmtRelative(rt.lastMessageAt)}` : "EMSC en espera"}</span>
+              <span>{rt.lastPollAt ? `USGS ${rt.lastPollOk ? "operativo" : "sin respuesta"} · ${fmtTime(rt.lastPollAt, true)}` : "USGS pendiente"}</span>
+              <span>{rt.ws === "open" ? "EMSC conectado" : rt.ws === "reconnecting" ? "EMSC reconectando" : "EMSC pendiente"}</span>
             </div>
           </SpotlightCard>
         </section>

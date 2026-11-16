@@ -1,7 +1,8 @@
 import { ExternalLink, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRealtime, type LiveEvent, type WsState } from "@/features/seismic/realtime";
-import { fmtDepth, fmtMag, fmtRelative, fmtTime, magClass } from "@/features/seismic/format";
+import { fmtDate, fmtDepth, fmtMag, fmtRelative, fmtTime, magClass, placeOf } from "@/features/seismic/format";
+import type { SeismicEvent } from "@/features/seismic/types";
 import { AnimatedList } from "@/components/reactbits";
 import { cn } from "@/lib/utils";
 
@@ -51,9 +52,12 @@ export function LiveBadge({ className, compact = false }: { className?: string; 
   );
 }
 
-function LiveRow({ e }: { e: LiveEvent }) {
+type FeedRow = Pick<LiveEvent, "key" | "magnitude" | "depthKm" | "place" | "province" | "url" | "occurredAtUtc" | "sources"> & {
+  classification: SeismicEvent["classification"];
+};
+
+function LiveRow({ e, live, isNew }: { e: FeedRow; live: boolean; isNew: boolean }) {
   const k = magClass(e.magnitude);
-  const isNew = e.fresh && Date.now() - Date.parse(e.receivedAt) < 5 * 60_000;
   return (
     <a
       href={e.url}
@@ -71,7 +75,7 @@ function LiveRow({ e }: { e: LiveEvent }) {
           {isNew && <span className="rounded-sm bg-primary px-1.5 py-px font-mono text-[0.6rem] uppercase tracking-wider text-primary-foreground">Nuevo</span>}
         </span>
         <span className="meta block truncate">
-          {fmtTime(e.occurredAtUtc, true)} · {fmtRelative(e.occurredAtUtc)} · {fmtDepth(e.depthKm)} · {e.classification === "maritima" ? "Mar" : "Tierra"}
+          {live ? fmtTime(e.occurredAtUtc, true) : fmtDate(e.occurredAtUtc)} · {fmtRelative(e.occurredAtUtc)} · {fmtDepth(e.depthKm)} · {e.classification === "maritima" ? "Mar" : "Tierra"}
         </span>
       </span>
       <span className="hidden flex-col items-end gap-1 sm:flex">
@@ -83,26 +87,46 @@ function LiveRow({ e }: { e: LiveEvent }) {
 }
 
 /** Feed de detecciones en vivo (preliminares) en Panamá y su zona marítima. */
-export function LiveFeed({ className, maxHeight }: { className?: string; maxHeight?: string }) {
+export function LiveFeed({ catalog, loading, unavailable }: { catalog: SeismicEvent[]; loading: boolean; unavailable: boolean }) {
   const rt = useRealtime();
   useTick();
+  const now = Date.now();
+  const live = rt.events.filter((event) => Date.parse(event.occurredAtUtc) >= now - 60 * 60_000);
+  const historical = live.length === 0;
+  const recent: FeedRow[] = catalog.slice(0, 5).map((event) => ({
+    key: event.id,
+    magnitude: event.primary.magnitude,
+    depthKm: event.primary.depthKm,
+    place: placeOf(event),
+    province: null,
+    url: event.primary.sourceUrl,
+    occurredAtUtc: event.primary.occurredAtUtc,
+    sources: [...new Set(event.reports.map((report) => report.sourceId))],
+    classification: event.classification,
+  }));
+  const newKeys = new Set(live.filter((event) => event.fresh && now - Date.parse(event.receivedAt) < 5 * 60_000).map((event) => event.key));
+  const status = !historical ? "Última hora · datos preliminares"
+    : rt.lastPollOk === false || rt.ws === "reconnecting" ? "Una fuente en vivo no responde. Consulta el catálogo más abajo."
+    : rt.lastPollOk && rt.ws === "open" ? "Sin detecciones nuevas recibidas en la última hora."
+    : "Conectando con las fuentes en vivo…";
   return (
-    <AnimatedList
-      {...(className && { className })}
-      {...(maxHeight ? { maxHeight } : {})}
-      items={rt.events}
+    <div className="px-4">
+      <p className="meta px-1 pt-4" role="status">{status}</p>
+      {historical && recent.length > 0 && <h3 className="px-1 pt-3 font-display text-base">Últimos sismos del catálogo</h3>}
+      <AnimatedList
+      maxHeight="22rem"
+      items={historical ? recent : live}
       getKey={(e) => e.key}
-      render={(e) => <LiveRow e={e} />}
+      render={(e) => <LiveRow e={e} live={!historical} isNew={newKeys.has(e.key)} />}
       empty={
         <li className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
           <Radio className="size-6 text-primary/60" aria-hidden="true" />
           <span>
-            Escuchando EMSC y USGS…
-            <br />
-            <span className="meta">Sin sismos en la última hora cerca de Panamá.</span>
+            {loading ? "Cargando catálogo…" : unavailable ? "No se pudo consultar el catálogo." : "No hay registros recientes disponibles en el catálogo."}
           </span>
         </li>
       }
-    />
+      />
+    </div>
   );
 }
