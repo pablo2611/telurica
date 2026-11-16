@@ -99,7 +99,7 @@ function toColumns(events: SeismicEvent[]) {
 }
 
 export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
-  const v: MapView = { basemap: "satellite", terrain: interactive, faults: true, columns: false, heat: false, ...view };
+  const v: MapView = { basemap: "satellite", terrain: false, faults: true, columns: false, heat: false, ...view };
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -283,8 +283,12 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, sele
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map) return;
-    if (interactive) map.easeTo({ pitch: v.terrain || v.columns ? Math.max(map.getPitch(), 50) : 0, duration: 800 });
+    if (!ready || !map || !interactive) return;
+    const perspective = v.terrain || v.columns;
+    const pitch = perspective ? 36 : 0;
+    if (map.getPitch() !== pitch || (!perspective && map.getBearing() !== 0)) {
+      map.easeTo({ pitch, ...(!perspective && { bearing: 0 }), duration: 600 });
+    }
   }, [ready, v.terrain, v.columns, interactive]);
 
   useEffect(() => {
@@ -325,10 +329,13 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, sele
       : epicenter;
     if (!center) return;
     const { clientWidth, clientHeight } = map.getContainer();
+    const offset: [number, number] = clientWidth < 1024
+      ? [0, -Math.round(clientHeight * 0.22)]
+      : [-Math.min(100, Math.round(clientWidth * 0.07)), -Math.min(65, Math.round(clientHeight * 0.08))];
     map.flyTo({
       center,
       zoom: Math.max(map.getZoom(), 8),
-      offset: clientWidth < 1024 ? [0, -Math.round(clientHeight * 0.22)] : [0, 0],
+      offset,
       duration: 900,
     });
   }, [ready, interactive, selectedLongitude, selectedLatitude, epicenter]);

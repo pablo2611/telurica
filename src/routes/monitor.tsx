@@ -78,7 +78,7 @@ function Monitor() {
   const [period, setPeriod] = useState<PeriodId>("30d");
   const [minMag, setMinMag] = useState(0);
   const [layers, setLayers] = useState<MapLayers>({ panama: true, maritima: true, provinces: true });
-  const [view, setView] = useState<MapView>({ basemap: "satellite", terrain: true, faults: true, columns: false, heat: false });
+  const [view, setView] = useState<MapView>({ basemap: "satellite", terrain: false, faults: true, columns: false, heat: false });
   const toggleView = (k: Exclude<keyof MapView, "basemap">) => setView((v) => ({ ...v, [k]: !v[k] }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(!event);
