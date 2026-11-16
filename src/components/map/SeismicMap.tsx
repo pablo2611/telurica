@@ -26,6 +26,7 @@ interface Props {
   events: SeismicEvent[];
   focusedFault?: Fault;
   focusedPlate?: Plate;
+  epicenter?: [number, number];
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   layers?: MapLayers;
@@ -97,7 +98,7 @@ function toColumns(events: SeismicEvent[]) {
   };
 }
 
-export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
+export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
   const v: MapView = { basemap: "satellite", terrain: interactive, faults: true, columns: false, heat: false, ...view };
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
@@ -182,6 +183,11 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
           map.addLayer({
             id: "ev-selected", type: "circle", source: "events", filter: ["==", ["get", "id"], ""],
             paint: { "circle-radius": RZ(1, 7) as never, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5, "circle-pitch-alignment": "map" },
+          });
+          map.addSource("linked-epicenter", { type: "geojson", data: toFeatures([]) });
+          map.addLayer({
+            id: "linked-epicenter", type: "circle", source: "linked-epicenter",
+            paint: { "circle-radius": 8, "circle-color": "#61ddbf", "circle-stroke-color": "#fff", "circle-stroke-width": 2.5 },
           });
           if (interactive) {
             const popup = new ml.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
@@ -298,13 +304,34 @@ export function SeismicMap({ events, focusedFault, focusedPlate, selectedId, onS
     }
   }, [ready, focusedFault, focusedPlate]);
 
+  const selectedEvent = events.find((event) => event.id === selectedId);
+  const selectedLongitude = selectedEvent?.primary.longitude;
+  const selectedLatitude = selectedEvent?.primary.latitude;
+
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
     map.setFilter("ev-selected", ["==", ["get", "id"], selectedId ?? ""]);
-    const ev = events.find((e) => e.id === selectedId);
-    if (ev && interactive) map.flyTo({ center: [ev.primary.longitude, ev.primary.latitude], zoom: Math.max(map.getZoom(), 8), duration: 1200 });
-  }, [ready, selectedId, events, interactive]);
+    map.getSource<GeoJSONSource>("linked-epicenter")?.setData(epicenter
+      ? { type: "Feature", geometry: { type: "Point", coordinates: epicenter }, properties: {} }
+      : toFeatures([]));
+  }, [ready, selectedId, epicenter]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !interactive) return;
+    const center = selectedLongitude != null && selectedLatitude != null
+      ? [selectedLongitude, selectedLatitude] as [number, number]
+      : epicenter;
+    if (!center) return;
+    const { clientWidth, clientHeight } = map.getContainer();
+    map.flyTo({
+      center,
+      zoom: Math.max(map.getZoom(), 8),
+      offset: clientWidth < 1024 ? [0, -Math.round(clientHeight * 0.22)] : [0, 0],
+      duration: 900,
+    });
+  }, [ready, interactive, selectedLongitude, selectedLatitude, epicenter]);
 
   return (
     <div className={cn("relative overflow-hidden bg-surface", className)}>

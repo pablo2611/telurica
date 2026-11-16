@@ -1,5 +1,5 @@
 import { FAULTS, PLATES } from "@/data/tectonics";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, ChevronUp, Layers, X } from "lucide-react";
@@ -12,7 +12,8 @@ import { fmtDate, fmtNum, fmtRelative, fmtTime, placeOf } from "@/features/seism
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import type { SeismicEvent } from "@/features/seismic/types";
+import { useRealtime } from "@/features/seismic/realtime";
+import type { SourceReport, SeismicEvent } from "@/features/seismic/types";
 
 export const Route = createFileRoute("/monitor")({
   head: () => ({
@@ -25,10 +26,18 @@ export const Route = createFileRoute("/monitor")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { fault?: string; plate?: string } => {
+  validateSearch: (search: Record<string, unknown>): { fault?: string; plate?: string; event?: string; lat?: number; lon?: number } => {
     const fault = FAULTS.find((item) => item.id === search["fault"]);
     const plate = PLATES.find((item) => item.id === search["plate"]);
-    return { ...(fault && { fault: fault.id }), ...(plate && { plate: plate.id }) };
+    const event = search["event"];
+    const lat = search["lat"];
+    const lon = search["lon"];
+    return {
+      ...(fault && { fault: fault.id }),
+      ...(plate && { plate: plate.id }),
+      ...(typeof event === "string" && /^(usgs|emsc):[a-z0-9._-]{1,100}$/i.test(event) && { event }),
+      ...(typeof lat === "number" && typeof lon === "number" && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && { lat, lon }),
+    };
   },
   component: Monitor,
 });
@@ -61,7 +70,9 @@ function Timeline({ events, start, end, selectedId, onSelect }: { events: Seismi
 }
 
 function Monitor() {
-  const { fault, plate } = Route.useSearch();
+  const { fault, plate, event, lat, lon } = Route.useSearch();
+  const navigate = useNavigate({ from: "/monitor" });
+  const realtime = useRealtime();
   const focusedFault = FAULTS.find((item) => item.id === fault);
   const focusedPlate = PLATES.find((item) => item.id === plate);
   const [period, setPeriod] = useState<PeriodId>("30d");
@@ -70,21 +81,50 @@ function Monitor() {
   const [view, setView] = useState<MapView>({ basemap: "satellite", terrain: true, faults: true, columns: false, heat: false });
   const toggleView = (k: Exclude<keyof MapView, "basemap">) => setView((v) => ({ ...v, [k]: !v[k] }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [timelineOpen, setTimelineOpen] = useState(true);
-  const [toolsOpen, setToolsOpen] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(!event);
+  const [toolsOpen, setToolsOpen] = useState(!event);
   const { data, isLoading, isError, isFetching } = useSeismicPeriod(period);
   useEffect(() => { if (window.innerWidth < 768) setToolsOpen(false); }, []);
 
   const events = useMemo(() => (data?.events ?? []).filter((e) => minMag === 0 || (e.primary.magnitude ?? -1) >= minMag), [data, minMag]);
   const visible = events.filter((e) => (e.classification === "panama" ? layers.panama : layers.maritima));
   const latest = visible[0];
-  const selected = (data?.events ?? []).find((e) => e.id === selectedId) ?? null;
+  const linkMatch = event ? data?.events.find((item) => item.id === event ||
+    item.reports.some((report) => `${report.sourceId}:${report.externalId}` === event)) : undefined;
+  const preliminary = event && !linkMatch ? realtime.events.find((item) => item.key === event) : undefined;
+  const preliminaryEvent = useMemo<SeismicEvent | undefined>(() => {
+    if (!preliminary) return undefined;
+    const report: SourceReport = {
+      sourceId: preliminary.key.startsWith("usgs:") ? "usgs" : "emsc",
+      externalId: preliminary.key.split(":")[1] ?? "",
+      latitude: preliminary.latitude, longitude: preliminary.longitude,
+      magnitude: preliminary.magnitude, magnitudeType: preliminary.magnitudeType,
+      depthKm: preliminary.depthKm, occurredAtUtc: preliminary.occurredAtUtc,
+      updatedAt: null, placeReported: preliminary.place, reviewStatus: null, author: null, sourceUrl: preliminary.url,
+    };
+    return { id: preliminary.key, primary: report, reports: [report], classification: preliminary.classification,
+      province: preliminary.province, nearestProvince: null, receivedAt: preliminary.receivedAt };
+  }, [preliminary]);
+  const selected = event ? linkMatch ?? preliminaryEvent : data?.events.find((item) => item.id === selectedId);
+  const mapEvents = useMemo(() => selected && !events.some((item) => item.id === selected.id) ? [...events, selected] : events, [events, selected]);
+  const epicenter = useMemo<[number, number] | undefined>(() =>
+    event && !selected && lat != null && lon != null ? [lon, lat] : undefined, [event, selected, lat, lon]);
+  const selectEvent = (id: string | null) => {
+    setSelectedId(id);
+    if (event) void navigate({ search: {}, replace: true });
+  };
+  useEffect(() => {
+    if (!event) return;
+    setSelectedId(null);
+    setToolsOpen(false);
+    setTimelineOpen(false);
+  }, [event]);
   const start = data ? Date.parse(data.range.start) : Date.now() - 86400_000;
   const end = data ? Date.parse(data.range.end) : Date.now();
 
   return (
     <main className="relative h-[calc(100dvh-3.5rem)] overflow-hidden">
-      <SeismicMap {...(focusedFault && { focusedFault })} {...(focusedPlate && { focusedPlate })} events={events} layers={layers} view={view} selectedId={selectedId} onSelect={setSelectedId} className="absolute inset-0" padding={{ top: 60, bottom: 160, left: 340, right: 60 }} />
+      <SeismicMap {...(focusedFault && { focusedFault })} {...(focusedPlate && { focusedPlate })} events={mapEvents} layers={layers} view={view} selectedId={selected?.id ?? null} onSelect={selectEvent} {...(epicenter && { epicenter })} className="absolute inset-0" padding={{ top: 60, bottom: 160, left: 340, right: 60 }} />
 
       {/* Herramientas contextuales */}
       <div className="glass absolute left-3 top-3 z-10 w-[min(320px,calc(100%-1.5rem))] rounded-xl border border-hairline shadow-float">
@@ -139,13 +179,20 @@ function Monitor() {
 
       {/* Panel de detalle */}
       <AnimatePresence>
-        {selected && (
+        {(selected || epicenter) && (
           <motion.aside key="detail" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }} transition={{ duration: 0.25 }}
-            className="absolute bottom-[calc(4.4rem+env(safe-area-inset-bottom))] right-0 top-0 z-20 w-full max-w-sm overflow-y-auto border-l border-hairline bg-background/95 p-6 backdrop-blur-md lg:bottom-0" aria-label="Detalle del evento">
-            <button type="button" onClick={() => setSelectedId(null)} className="absolute right-4 top-4 rounded-sm p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Cerrar detalle">
+            className="absolute bottom-[calc(4.4rem+env(safe-area-inset-bottom))] right-0 z-20 max-h-[44dvh] w-full overflow-y-auto border-t lg:top-0 lg:max-h-none lg:max-w-sm lg:border-l border-hairline bg-background/95 p-6 backdrop-blur-md lg:bottom-0" aria-label="Detalle del evento">
+            <button type="button" onClick={() => selectEvent(null)} className="absolute right-4 top-4 rounded-sm p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Cerrar detalle">
               <X className="size-4" />
             </button>
-            <EventDetail e={selected} />
+            {preliminaryEvent && <p className="meta mb-3">Detección preliminar</p>}
+            {selected ? <EventDetail e={selected} /> : epicenter && (
+              <div className="space-y-3 pr-8">
+                <h2 className="font-display text-xl">Epicentro del sismo</h2>
+                <p className="font-mono text-sm">{epicenter[1].toFixed(4)}°, {epicenter[0].toFixed(4)}°</p>
+                <p className="text-sm text-muted-foreground">{isLoading ? "Consultando la ficha del catálogo…" : "La ficha todavía no está disponible en el catálogo."}</p>
+              </div>
+            )}
           </motion.aside>
         )}
       </AnimatePresence>
@@ -156,11 +203,11 @@ function Monitor() {
           <span className="flex items-center gap-3"><span className="font-display">Cronología</span><span className="meta">magnitud en el tiempo · clic para ubicar</span></span>
           {timelineOpen ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
         </button>
-        {timelineOpen && (visible.length ? <Timeline events={visible} start={start} end={end} selectedId={selectedId} onSelect={setSelectedId} /> : <p className="px-4 pb-4 text-sm text-muted-foreground">{isLoading ? "Cargando…" : "Sin eventos con los filtros actuales."}</p>)}
+        {timelineOpen && (visible.length ? <Timeline events={visible} start={start} end={end} selectedId={selected?.id ?? null} onSelect={selectEvent} /> : <p className="px-4 pb-4 text-sm text-muted-foreground">{isLoading ? "Cargando…" : "Sin eventos con los filtros actuales."}</p>)}
         {timelineOpen && latest && (
           <div className="flex items-center gap-2 border-t border-hairline px-4 py-2 text-sm">
             <span className="meta">Último:</span>
-            <button type="button" onClick={() => setSelectedId(latest.id)} className="truncate hover:text-primary">
+            <button type="button" onClick={() => selectEvent(latest.id)} className="truncate hover:text-primary">
               <MagValue m={latest.primary.magnitude} /> · {placeOf(latest)} · {fmtDate(latest.primary.occurredAtUtc)} {fmtTime(latest.primary.occurredAtUtc)}
             </button>
           </div>

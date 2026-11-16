@@ -1,4 +1,5 @@
-import { ExternalLink, Radio } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LocateFixed, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRealtime, type LiveEvent, type WsState } from "@/features/seismic/realtime";
 import { fmtDate, fmtDepth, fmtMag, fmtRelative, fmtTime, magClass, placeOf } from "@/features/seismic/format";
@@ -52,17 +53,14 @@ export function LiveBadge({ className, compact = false }: { className?: string; 
   );
 }
 
-type FeedRow = Pick<LiveEvent, "key" | "magnitude" | "depthKm" | "place" | "province" | "url" | "occurredAtUtc" | "sources"> & {
+type FeedRow = Pick<LiveEvent, "key" | "magnitude" | "depthKm" | "place" | "province" | "latitude" | "longitude" | "occurredAtUtc" | "sources"> & {
   classification: SeismicEvent["classification"];
 };
 
 function LiveRow({ e, live, isNew }: { e: FeedRow; live: boolean; isNew: boolean }) {
   const k = magClass(e.magnitude);
   return (
-    <a
-      href={e.url}
-      target="_blank"
-      rel="noreferrer"
+    <Link to="/monitor" search={{ event: e.key, lat: e.latitude, lon: e.longitude }}
       className={cn(
         "group flex items-center gap-3 rounded-lg border border-hairline bg-background/60 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-accent/30",
         isNew && "border-primary/50 bg-primary/5",
@@ -80,9 +78,9 @@ function LiveRow({ e, live, isNew }: { e: FeedRow; live: boolean; isNew: boolean
       </span>
       <span className="hidden flex-col items-end gap-1 sm:flex">
         <span className={cn("font-mono text-[0.65rem]", MAG_TEXT[k])}>{e.sources.map((s) => s.toUpperCase()).join(" + ")}</span>
-        <ExternalLink className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+        <LocateFixed className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
       </span>
-    </a>
+    </Link>
   );
 }
 
@@ -99,7 +97,8 @@ export function LiveFeed({ catalog, loading, unavailable }: { catalog: SeismicEv
     depthKm: event.primary.depthKm,
     place: placeOf(event),
     province: null,
-    url: event.primary.sourceUrl,
+    latitude: event.primary.latitude,
+    longitude: event.primary.longitude,
     occurredAtUtc: event.primary.occurredAtUtc,
     sources: [...new Set(event.reports.map((report) => report.sourceId))],
     classification: event.classification,
