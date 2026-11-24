@@ -9,6 +9,7 @@ export const assistantInput = z.object({
 export type AssistantInput = z.infer<typeof assistantInput>;
 export interface AssistantReply {
   answer: string;
+  mode: "ai" | "catalog";
   generatedAt: string;
   range: { start: string; end: string };
   total: number;

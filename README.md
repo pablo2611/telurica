@@ -140,7 +140,7 @@ Configura exclusivamente en el proyecto Telúrica del equipo autorizado de Verce
 | `SAVIA_HASH_SECRET` | Secreto aleatorio de al menos 32 caracteres para anonimizar IP |
 | `SAVIA_ENABLED` | `true` para activar después de configurar las protecciones |
 
-Savia permanece deshabilitada si falta una variable. El estado público solo comunica disponibilidad. No expone nombres de secretos ni sus valores. El servidor rechaza orígenes ajenos y cuerpos mayores de 4 KiB. La identidad de red procede del ingreso Vercel. Para desplegar en otro dominio se debe añadir explícitamente a la lista de orígenes permitidos.
+Savia permanece deshabilitada si falta una variable. El estado público solo comunica disponibilidad de IA. Si NVIDIA o su cuota no permiten una respuesta, el navegador solicita el catálogo mediante la caché compartida existente y muestra un resumen determinista, identificado como automático, junto a su gráfica y mapa. Este resumen no interpreta libremente la pregunta ni predice riesgos. No expone nombres de secretos ni sus valores. El servidor rechaza orígenes ajenos y cuerpos mayores de 4 KiB. La identidad de red procede del ingreso Vercel. Para desplegar en otro dominio se debe añadir explícitamente a la lista de orígenes permitidos.
 
 ### Cuotas y consumo
 

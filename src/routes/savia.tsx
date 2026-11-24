@@ -1,10 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { Activity, Bot, ChartColumn, LoaderCircle, MapPinned, Send, ShieldCheck } from "lucide-react";
 import { SeismicMap } from "@/components/map/SeismicMap";
 import { Button } from "@/components/ui/button";
-import { SUGGESTIONS, type AssistantReply } from "@/features/assistant/contract";
+import { SUGGESTIONS, isSeismicQuestion, type AssistantReply } from "@/features/assistant/contract";
+
+import { catalogAnswer } from "@/features/assistant/catalog-answer";
+import { seismicQuery } from "@/features/seismic/queries";
+import { periodStart } from "@/features/seismic/periods";
 
 export const Route = createFileRoute("/savia")({
   head: () => ({ meta: [
@@ -20,6 +24,7 @@ const date = (value: string) => new Intl.DateTimeFormat("es-PA", {
 }).format(new Date(value));
 
 function Savia() {
+  const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
   const [period, setPeriod] = useState<"24h" | "7d" | "30d">("7d");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -41,6 +46,11 @@ function Savia() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current) return;
+    if (!isSeismicQuestion(question)) {
+      setError("Puedo ayudarte con sismos, fuentes y estadísticas de Panamá. Prueba una pregunta sugerida.");
+      input.current?.focus();
+      return;
+    }
     busy.current = true;
     setPending(true);
     setError("");
@@ -50,13 +60,22 @@ function Savia() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: submitted, period }), signal: AbortSignal.timeout(65000),
       });
-      const body = await response.json() as AssistantReply & { error?: string };
+      const body = await response.json().catch(() => ({ error: response.status === 429
+        ? "Se alcanzó el límite temporal de consultas."
+        : "El servicio de IA está temporalmente desconectado." })) as AssistantReply & { error?: string };
+      if (response.status === 422) { setError(body.error ?? "Prueba una pregunta sobre sismicidad de Panamá."); return; }
       if (!response.ok) throw new Error(body.error ?? "No se pudo completar la consulta.");
       setTurns(previous => [...previous.slice(-5), { question: submitted, reply: body }]);
       setQuestion("");
     } catch (cause) {
-      setError(cause instanceof Error && cause.name !== "TimeoutError" ? cause.message : "La consulta tardó demasiado. Inténtalo más tarde.");
-      input.current?.focus();
+      try {
+        const catalog = await queryClient.fetchQuery({ ...seismicQuery(periodStart(period)), retry: false, staleTime: 60_000 });
+        setTurns(previous => [...previous.slice(-5), { question: submitted, reply: catalogAnswer(catalog, submitted) }]);
+        setQuestion("");
+      } catch {
+        setError("La IA y el catálogo están temporalmente sin respuesta. Puedes consultar Educación y Fuentes mientras se restablecen.");
+        input.current?.focus();
+      }
     } finally { busy.current = false; setPending(false); }
   }
 
@@ -88,7 +107,7 @@ function Savia() {
               <article key={index} className="space-y-3 border-t border-border pt-5">
                 <h3 className="break-words font-medium">{turn.question}</h3>
                 <p className="whitespace-pre-wrap break-words text-sm leading-7">{turn.reply.answer}</p>
-                <p className="meta">Catálogo consultado el {date(turn.reply.generatedAt)} · {turn.reply.total} registros</p>
+                <p className="meta">{turn.reply.mode === "catalog" ? "Resumen automático del catálogo" : "Respuesta de IA"} · Catálogo consultado el {date(turn.reply.generatedAt)} · {turn.reply.total} registros</p>
               </article>
             ))}
           </div>
@@ -123,7 +142,7 @@ function Savia() {
               <p role="status" className="max-w-sm text-xs text-muted-foreground">
                 {pending ? "Consultando las fuentes y preparando tu respuesta…" : status.isError ? "No se pudo comprobar la disponibilidad del chat." : status.data?.message ?? "Comprobando disponibilidad…"}
               </p>
-              <Button type="submit" disabled={pending || status.data?.enabled !== true} className="min-h-12 gap-2">
+              <Button type="submit" disabled={pending} className="min-h-12 gap-2">
                 {pending ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
                 {pending ? "Consultando" : "Consultar a Savia"}
               </Button>

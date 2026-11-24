@@ -23,7 +23,7 @@ try {
     await page.goto(origin + "/savia", { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: "Hola, soy Savia." }).waitFor();
     await page.getByText("Savia está en preparación.", { exact: false }).waitFor();
-    assert.equal(await page.getByRole("button", { name: "Consultar a Savia", exact: true }).isEnabled(), false);
+    assert.equal(await page.getByRole("button", { name: "Consultar a Savia", exact: true }).isEnabled(), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
     await page.screenshot({ path: `test-results/savia/${width}-unconfigured.png`, fullPage: true });
 
@@ -34,7 +34,7 @@ try {
       assert.equal(input.period, "7d");
       assert.ok(input.question.length >= 8);
       return route.fulfill({ json: {
-        answer: "Respuesta de prueba <img src=x onerror=alert(1)>",
+        answer: "Respuesta de prueba <img src=x onerror=alert(1)>", mode: "ai",
         generatedAt: "2026-11-23T12:00:00.000Z",
         range: { start: "2026-11-16T12:00:00.000Z", end: "2026-11-23T12:00:00.000Z" },
         total: 0, maxMagnitude: null, provinces: [], days: [], events: [], mapTruncated: false,

@@ -113,7 +113,7 @@ export async function handleAssistant(request: Request) {
     if (!output.success) throw new ChatError(502, "La respuesta no pasó la validación. Inténtalo más tarde.");
     if (!output.data.inScope) throw new ChatError(422, "Savia responde sobre fuentes y actividad sísmica de Panamá. Prueba una pregunta sugerida.");
     const reply: AssistantReply = {
-      answer: output.data.answer, generatedAt: catalog.generatedAt, range: catalog.range,
+      answer: output.data.answer, mode: "ai", generatedAt: catalog.generatedAt, range: catalog.range,
       total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
       events: catalog.events.slice(0, 300), sources: context.sources,
       mapTruncated: catalog.events.length > 300,
