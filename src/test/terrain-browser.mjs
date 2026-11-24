@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdir, readFile } from "node:fs/promises";
 const { chromium } = await import(process.env["TERRAIN_BROWSER_MODULE"] ?? "playwright");
+async function setRange(page, selector, value) {
+  await page.locator(selector).evaluate((element, next) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(element, next);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, String(value));
+}
 const origin = process.env["TERRAIN_ORIGIN"] ?? "http://localhost:3000";
 await mkdir("test-results/terrain", { recursive: true });
 for (let attempt = 0; attempt < 40; attempt++) {
@@ -40,15 +46,16 @@ try {
     await page.getByRole("button", { name: "Relieve 3D", exact: true }).click();
     await page.locator(".terrain-map-label").getByText("Edificios 3D · OSM", { exact: true }).waitFor();
     await page.getByLabel("Radio alrededor del punto", { exact: true }).selectOption("5");
+    const selectedUrl = page.url();
     await page.locator(".terrain-camera-controls summary").click();
     await page.getByRole("button", { name: "Desde arriba", exact: true }).click();
     await page.waitForFunction(() => document.querySelector(".terrain-viewport")?.getAttribute("data-camera-pitch") === "0");
-    await page.locator("#terrain-camera-bearing").fill("180");
+    await setRange(page, "#terrain-camera-bearing", 180);
     await page.getByRole("button", { name: "Satélite", exact: true }).click();
     assert.equal(await page.locator(".terrain-viewport").getAttribute("data-camera-bearing"), "180");
     assert.equal(await page.locator(".terrain-viewport").getAttribute("data-camera-pitch"), "0");
-    await page.locator("#terrain-camera-pitch").fill("65");
-    await page.locator("#terrain-camera-zoom").fill("20");
+    await setRange(page, "#terrain-camera-pitch", 65);
+    await setRange(page, "#terrain-camera-zoom", 20);
     await page.waitForFunction(() => document.querySelector(".terrain-viewport")?.getAttribute("data-camera-zoom") === "20");
     await page.waitForTimeout(500);
     assert.ok(satelliteLevels.every(level => level <= 16), "Se solicitaron imágenes satelitales sin cobertura de zoom alto");
@@ -57,6 +64,7 @@ try {
     await page.getByRole("button", { name: "Vista inclinada", exact: true }).click();
     await page.waitForFunction(() => document.querySelector(".terrain-viewport")?.getAttribute("data-camera-bearing") === "0" && document.querySelector(".terrain-viewport")?.getAttribute("data-camera-pitch") === "50");
     await page.locator(".terrain-camera-controls summary").click();
+    assert.equal(page.url(), selectedUrl);
     await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
     assert.ok(Number(await page.locator(".terrain-viewport").getAttribute("data-visible-buildings")) > 0, "No se renderizaron edificios en la ciudad");
     await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-city.png` });
