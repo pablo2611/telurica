@@ -493,8 +493,8 @@
   .terrain-report { margin-top: 32px; }
 }
 @media print {
-  body { background: white !important; color: black !important; }
-  body > div header, body > div footer, nav, .terrain-workspace, .terrain-header-note, .terrain-report-actions, .terrain-savia-link, .terrain-header, .terrain-sources, .terrain-nearby { display: none !important; }
+  body:has(.terrain-page) { background: white !important; color: black !important; }
+  body:has(.terrain-page) > div header, body:has(.terrain-page) > div footer, body:has(.terrain-page) nav, .terrain-workspace, .terrain-header-note, .terrain-report-actions, .terrain-savia-link, .terrain-header, .terrain-sources, .terrain-nearby { display: none !important; }
   .terrain-page { padding: 0; max-width: none; }
   .terrain-report { margin-top: 0; }
   .terrain-report *, .terrain-report { color: black !important; background: white !important; border-color: #999 !important; }
@@ -502,3 +502,5 @@
   .terrain-evidence-grid, .terrain-next-steps ol { grid-template-columns: 1fr; }
   .terrain-report a { text-decoration: underline; }
 }
+
+.terrain-context > div { display: grid; gap: 7px; min-width: 0; }
