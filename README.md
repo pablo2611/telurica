@@ -161,3 +161,8 @@ La caché usa el plan gratuito de Upstash con autoUpgrade=false, prodPack=false 
 ### Verificación
 
 CI ejecuta compilación, regeneración de rutas, pruebas, lint y typecheck con Node 22. Comprueba seguridad de entrada, independencia de la caché, consultas repetidas sin cuotas, fases SSE y selección de tablas, mapas, regiones y períodos. Un workflow manual separado verifica el navegador a 390, 1024 y 1366 px en GitHub.
+
+
+### Mapas estadísticos por zonas
+
+Savia y la opción «Zonas sísmicas» del Monitor muestran hexágonos fijos de ~374 km², con recuentos o magnitud máxima, leyenda numérica y fichas al tocar una zona. La tabla de zonas de Savia permite ordenar, consultar la proporción del catálogo y encuadrar cada zona con teclado o pantalla táctil. La agregación usa todo el catálogo; el límite de 300 aplica únicamente a los puntos individuales. Los colores representan actividad registrada durante el período y filtros elegidos. El enlace a GEM abre el modelo probabilístico oficial de amenaza a largo plazo. Metodología y limitaciones en API_SOURCES.md.

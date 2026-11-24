@@ -360,3 +360,24 @@
 }
 @keyframes savia-scan { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @media (max-width: 580px) { .savia-topline { align-items: flex-start; } .savia-top-actions { gap: 0 12px; } }
+
+/* Fixed-area seismic statistics. Colour is supplemented by exact values and a table. */
+.activity-map-key { position: absolute; z-index: 2; left: 10px; bottom: 35px; max-width: min(285px, calc(100% - 65px)); padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 10px; pointer-events: none; }
+.activity-map-key strong { display: block; font-size: 11px; margin-bottom: 6px; }
+.activity-map-key > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.activity-map-key span { display: inline-flex; align-items: center; gap: 4px; }
+.activity-map-key i { width: 9px; height: 9px; border-radius: 2px; }
+.activity-map-key p { margin-top: 6px; color: var(--muted-foreground); line-height: 1.5; }
+.activity-intro h4 { font-family: var(--font-display); font-size: 21px; }
+.activity-intro p, .activity-hazard-note p, .activity-monitor-help p { font-size: 12px; color: var(--muted-foreground); line-height: 1.8; margin-top: 6px; }
+.activity-zone-button { min-height: 44px; text-align: start; color: var(--primary); padding-block: 5px; }
+.activity-zone-button small { display: block; color: var(--muted-foreground); font-size: 10px; font-weight: normal; }
+.activity-zone-button[aria-pressed=true] { text-decoration: underline; text-underline-offset: 4px; }
+.activity-table-actions { display: flex; flex-wrap: wrap; gap: 16px; }
+.activity-selected-note { border-left: 2px solid var(--primary); padding: 10px 14px; margin-top: 14px; font-size: 12px; line-height: 1.8; }
+.activity-hazard-note { margin-top: 18px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: color-mix(in srgb, var(--primary) 4%, var(--surface)); }
+.activity-hazard-note strong { font-size: 13px; }
+.activity-hazard-note a, .activity-monitor-help a { display: inline-flex; align-items: center; min-height: 44px; color: var(--primary); font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.activity-monitor-help label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
+.activity-monitor-help select { min-height: 44px; padding: 4px 8px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; }
+.activity-monitor-help select:focus-visible, .activity-monitor-help a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

@@ -1,3 +1,4 @@
+import { spatialActivity } from "@/features/seismic/spatial-activity";
 import { z } from "zod";
 import { assistantInput, isSeismicQuestion, type AssistantReply, type AssistantInput, type ChatPhase } from "./contract";
 import { ChatError, isConfigured, privateHash, redis } from "./runtime.server";
@@ -67,7 +68,7 @@ export async function assistantStatus() {
 }
 
 async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: ChatPhase) => void): Promise<AssistantReply> {
-    const cacheKey = "telurica:savia:v5:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
+    const cacheKey = "telurica:savia:v6:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
     const cached = await redis<string | null>(["GET", cacheKey]).catch(() => null);
     if (cached) return JSON.parse(cached) as AssistantReply;
     emit("sources");
@@ -86,7 +87,7 @@ async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: 
     const resultData = {
       presentation, generatedAt: catalog.generatedAt, range: catalog.range,
       total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
-      events: catalog.events.slice(0, 300),
+      activity: spatialActivity(catalog.events), events: catalog.events.slice(0, 300),
       sources: [...catalog.sources, tsunami.source].map(({ name, url, state }) => ({ name, url, state })),
       mapTruncated: catalog.events.length > 300,
     };

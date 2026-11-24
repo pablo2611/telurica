@@ -145,7 +145,7 @@ function Monitor() {
         </div>
         {toolsOpen && (
           <div className="space-y-5 border-t border-hairline px-4 py-4">
-            <PeriodSwitch value={period} onChange={setPeriod} options={["24h", "7d", "30d", "90d"]} />
+            <PeriodSwitch value={period} onChange={setPeriod} options={["24h", "7d", "30d", "90d", "365d"]} />
             <div>
               <div className="flex justify-between text-sm"><label htmlFor="minmag">Magnitud mínima</label><span className="num font-mono">{minMag === 0 ? "Todas" : `≥ ${minMag.toFixed(1)}`}</span></div>
               <Slider id="minmag" className="mt-3" min={0} max={6} step={0.5} value={[minMag]} onValueChange={(v) => setMinMag(v[0] ?? 0)} aria-label="Magnitud mínima" />
@@ -159,12 +159,18 @@ function Monitor() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {([["terrain", "Relieve 3D"], ["faults", "Fallas"], ["columns", "Columnas"], ["heat", "Calor"]] as const).map(([k, l]) => (
+                {([["terrain", "Relieve 3D"], ["faults", "Fallas"], ["columns", "Columnas"], ["heat", "Zonas sísmicas"]] as const).map(([k, l]) => (
                   <button key={k} type="button" aria-pressed={view[k]} onClick={() => toggleView(k)}
                     className="rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary">{l}</button>
                 ))}
               </div>
             </div>
+            {view.heat && <div className="activity-monitor-help">
+              <p>Zonas de actividad observada · cada hexágono agrupa ~374 km². Toca una zona para ver sus cifras.</p>
+              <label>Colorear por<select value={view.activityMetric ?? "count"} onChange={e => setView(v => ({ ...v, activityMetric: e.target.value as "count" | "magnitude" }))}><option value="count">Número de sismos</option><option value="magnitude">Magnitud máxima</option></select></label>
+              <p>Los colores cambian con el período y los filtros. Sin registros no significa ausencia de amenaza.</p>
+              <a href="https://maps.openquake.org/map/gshm-v2026_1/" target="_blank" rel="noopener noreferrer">Consultar amenaza a largo plazo · GEM</a>
+            </div>}
             <fieldset className="space-y-2.5 text-sm">
               <legend className="meta mb-2">Capas</legend>
               {([["panama", "Epicentros en territorio panameño"], ["maritima", "Epicentros en zona marítima próxima"], ["provinces", "Límites de provincias y comarcas"]] as const).map(([k, label]) => (

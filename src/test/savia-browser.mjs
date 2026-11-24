@@ -29,7 +29,8 @@ try {
         answer: "Respuesta de prueba <img src=x onerror=alert(1)>",
         mode: "ai", generatedAt: "2026-11-23T12:00:00.000Z",
         range: { start: "2026-11-16T12:00:00.000Z", end: "2026-11-23T12:00:00.000Z" },
-        total: 0, maxMagnitude: null, provinces: [], days: [], events: [], mapTruncated: false,
+        total: 401, maxMagnitude: 4.5, provinces: [["Chiriquí", 401]], days: [], events: [], mapTruncated: true,
+        activity: { total: 401, skipped: 0, cells: [{ id: "test-cell", longitude: -82.43, latitude: 8.43, count: 401, land: 400, sea: 1, maxMagnitude: 4.5, meanDepth: 12, latest: "2026-11-23T12:00:00Z", place: "Chiriquí" }] },
         sources: [{ name: "USGS", url: "https://earthquake.usgs.gov/", state: "operativa" }],
         presentation: { views: [wantsMap ? "map" : "table"], regions: wantsMap ? ["Chiriquí"] : [], tableKind: "provinces", chartKind: "daily" },
       };
@@ -57,6 +58,13 @@ try {
     await page.getByRole("region", { name: "Mapa de sismos de Panamá" }).waitFor();
     const articles = page.getByRole("log").locator("article");
     assert.equal(await articles.count(), 2);
+    await page.getByRole("button", { name: "Magnitud máxima", exact: true }).click();
+    await page.getByRole("button", { name: /Chiriquí.*8.43/ }).click();
+    await page.getByRole("status").getByText("Zona seleccionada:", { exact: false }).waitFor();
+    assert.equal(await page.getByRole("button", { name: /Chiriquí.*8.43/ }).getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator(".activity-intro").innerText(), /401 registros/);
+    await page.getByRole("button", { name: "Ver toda la selección", exact: true }).click();
+    await page.getByRole("button", { name: "Número de sismos", exact: true }).click();
     await articles.last().getByRole("button", { name: "Gráfica", exact: true }).click();
     await page.getByRole("img", { name: "Gráfica de evolución diaria de sismos terrestres y marítimos" }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);

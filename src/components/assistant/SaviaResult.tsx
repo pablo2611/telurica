@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import type { EChartsOption } from "echarts";
-import { Link, useNavigate } from "@tanstack/react-router";
 import { ChartColumn, MapPinned, Table2 } from "lucide-react";
-import { SeismicMap } from "@/components/map/SeismicMap";
+import { ActivityResultMap } from "./ActivityResultMap";
 import { EChart } from "@/components/charts/EChart";
 import { baseChart } from "@/components/charts/theme";
 import { cssColor } from "@/lib/css-color";
@@ -73,7 +72,6 @@ function ResultChart({ reply }: { reply: AssistantReply }) {
 }
 
 export function SaviaResult({ reply, question }: { reply: AssistantReply; question: string }) {
-  const navigate = useNavigate();
   const presentation = reply.presentation ?? presentationFor(question);
   const [views, setViews] = useState<ViewKind[]>(presentation.views);
   const bounds = useMemo<[[number, number], [number, number]] | undefined>(() => {
@@ -100,17 +98,7 @@ export function SaviaResult({ reply, question }: { reply: AssistantReply; questi
       {views.includes("table") && <ResultTable reply={reply} question={question} />}
       {views.includes("chart") && <ResultChart reply={reply} />}
       {views.includes("map") && (
-        <div className="savia-map">
-          <SeismicMap events={reply.events} eventBounds={bounds} interactive
-            view={{ basemap: "dark", terrain: false, faults: true, heat: true }}
-            className="h-80 rounded-xl sm:h-[420px]" padding={{ top: 28, bottom: 28, left: 28, right: 28 }}
-            onSelect={id => {
-              const event = reply.events.find(item => item.id === id);
-              if (event) void navigate({ to: "/monitor", search: { event: event.id, period: reply.period ?? "30d", lat: event.primary.latitude, lon: event.primary.longitude } });
-            }} />
-          <p className="savia-footnote">Densidad observada de epicentros{reply.mapTruncated ? " · muestra de los 300 registros más recientes" : ""}. Los colores describen este catálogo y período. La evaluación de un terreno requiere estudios geotécnicos y revisión profesional.</p>
-          <Link to="/monitor" className="savia-text-button">Explorar en el Monitor</Link>
-        </div>
+        <ActivityResultMap reply={reply} bounds={bounds} />
       )}
       <details className="savia-sources">
         <summary>Fuentes y período de esta respuesta</summary>

@@ -1,3 +1,4 @@
+import { spatialActivity } from "@/features/seismic/spatial-activity";
 import type { SeismicPayload } from "@/features/seismic/types";
 import { summarize, byProvince, countByDay } from "@/features/seismic/stats";
 import { filterRegion, presentationFor } from "./presentation";
@@ -28,7 +29,7 @@ export function catalogAnswer(original: SeismicPayload, question: string, previo
     answer, presentation, mode: "catalog", generatedAt: catalog.generatedAt, range: catalog.range,
     total: summary.total, maxMagnitude: summary.maxMag, provinces,
     days: countByDay(catalog.events, catalog.range.start, catalog.range.end),
-    events: catalog.events.slice(0, 300), sources: catalog.sources.map(({ name, url, state }) => ({ name, url, state })),
+    activity: spatialActivity(catalog.events), events: catalog.events.slice(0, 300), sources: catalog.sources.map(({ name, url, state }) => ({ name, url, state })),
     mapTruncated: catalog.events.length > 300,
   };
 }

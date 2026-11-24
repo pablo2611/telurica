@@ -1,3 +1,4 @@
+import type { SpatialActivity } from "@/features/seismic/spatial-activity";
 import { z } from "zod";
 import type { PeriodId } from "@/features/seismic/periods";
 import type { SeismicEvent } from "@/features/seismic/types";
@@ -21,6 +22,7 @@ export interface AssistantReply {
   provinces: [string, number][];
   days: { day: string; panama: number; maritima: number }[];
   events: SeismicEvent[];
+  activity?: SpatialActivity;
   sources: { name: string; url: string; state: string }[];
   mapTruncated: boolean;
 }
@@ -28,7 +30,7 @@ export interface AssistantReply {
 export const SUGGESTIONS = [
   "Resume la actividad sísmica de Panamá.",
   "Haz una tabla comparando los sismos por provincia.",
-  "Muéstrame un mapa de calor de los sismos de Chiriquí.",
+  "Muéstrame las zonas con más sismos registrados en Chiriquí.",
   "Grafica la evolución diaria de los sismos de Panamá.",
 ];
 

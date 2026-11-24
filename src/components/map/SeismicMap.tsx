@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import type { Map as MLMap, GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Map as MLMap, GeoJSONSource, MapLayerMouseEvent, Popup } from "maplibre-gl";
+import { spatialActivity, activityGeoJSON, CELL_AREA_KM2, type SpatialActivity } from "@/features/seismic/spatial-activity";
 import geoData from "@/data/panama-geo.json";
 import { FAULTS, faultsGeoJSON, type Fault, type Plate } from "@/data/tectonics";
 import type { SeismicEvent } from "@/features/seismic/types";
@@ -20,10 +21,12 @@ export interface MapView {
   faults: boolean;
   columns: boolean;
   heat: boolean;
+  activityMetric?: "count" | "magnitude";
 }
 
 interface Props {
   events: SeismicEvent[];
+  activity?: SpatialActivity | undefined;
   focusedFault?: Fault;
   focusedPlate?: Plate;
   epicenter?: [number, number];
@@ -99,10 +102,13 @@ function toColumns(events: SeismicEvent[]) {
   };
 }
 
-export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, eventBounds, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
+export function SeismicMap({ events, activity, focusedFault, focusedPlate, epicenter, eventBounds, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
   const v: MapView = { basemap: "satellite", terrain: false, faults: true, columns: false, heat: false, ...view };
+  const visibleEvents = useMemo(() => events.filter(e => e.classification === "panama" ? layers.panama : e.classification === "maritima" && layers.maritima), [events, layers.panama, layers.maritima]);
+  const statistics = useMemo(() => activity ?? spatialActivity(visibleEvents), [activity, visibleEvents]);
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
+  const activityPopup = useRef<Popup | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const onSelectRef = useRef(onSelect);
@@ -160,7 +166,10 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, even
           const base = ["interpolate", ["exponential", 1.7], ["get", "mag"], 0, 2.5, 3, 4.5, 5, 10, 6, 16, 7.7, 30];
           const RZ = (k: number, offset = 0) => ["interpolate", ["linear"], ["zoom"], 4, ["+", ["*", base, 0.6 * k], offset], 7, ["+", ["*", base, k], offset], 11, ["+", ["*", base, 2 * k], offset]];
           const radius = RZ(1);
-          map.addLayer({ id: "ev-heat", type: "heatmap", source: "events", layout: { visibility: "none" }, paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "mag"], 1, 0.05, 5, 0.6, 7.7, 1], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 4, 14, 9, 36], "heatmap-opacity": 0.75, "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "#2b7a8c", 0.45, "#e9d75a", 0.7, "#f39a3c", 1, "#f0614f"] } as never });
+          map.addSource("activity", { type: "geojson", data: activityGeoJSON({ cells: [], total: 0, skipped: 0 }) });
+          map.addLayer({ id: "activity-fill", type: "fill", source: "activity", layout: { visibility: "none" }, paint: { "fill-color": cssColor("--primary"), "fill-opacity": 0.68 } });
+          map.addLayer({ id: "activity-line", type: "line", source: "activity", layout: { visibility: "none" }, paint: { "line-color": cssColor("--foreground"), "line-width": 1, "line-opacity": 0.55 } });
+          map.addLayer({ id: "activity-selected", type: "line", source: "activity", filter: ["==", ["get", "id"], ""], paint: { "line-color": cssColor("--foreground"), "line-width": 3 } });
           map.addLayer({ id: "ev-cols", type: "fill-extrusion", source: "columns", layout: { visibility: "none" }, paint: { "fill-extrusion-color": colorExpr as never, "fill-extrusion-height": ["get", "h"], "fill-extrusion-opacity": 0.85 } as never });
           map.addLayer({
             id: "ev-halo", type: "circle", source: "events",
@@ -213,6 +222,27 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, even
               const id = e.features?.[0]?.properties?.["id"] as string | undefined;
               if (id) onSelectRef.current?.(id);
             });
+            const zonePopup = new ml.Popup({ closeButton: true, offset: 12, maxWidth: "285px" });
+            activityPopup.current = zonePopup;
+            map.on("mouseenter", "activity-fill", () => { if (map) map.getCanvas().style.cursor = "pointer"; });
+            map.on("mouseleave", "activity-fill", () => { if (map) map.getCanvas().style.cursor = ""; });
+            map.on("click", "activity-fill", (e: MapLayerMouseEvent) => {
+              if (!map || map.queryRenderedFeatures(e.point, { layers: ["ev-dot"] }).length) return;
+              const cell = e.features?.[0]?.properties;
+              if (!cell) return;
+              const box = document.createElement("div");
+              for (const line of [
+                `Zona de ${cell["place"]} · ~${CELL_AREA_KM2} km²`,
+                `${cell["count"]} registros · ${cell["land"]} terrestres · ${cell["sea"]} marítimos`,
+                `Magnitud máxima: ${cell["maxMagnitude"] == null ? "Sin datos" : Number(cell["maxMagnitude"]).toFixed(1)}`,
+                `Profundidad media: ${cell["meanDepth"] == null ? "Sin datos" : Number(cell["meanDepth"]).toFixed(1) + " km"}`,
+                `Último registro: ${fmtDateTime(String(cell["latest"]))}`,
+                "Frecuencia observada. No es una probabilidad futura.",
+              ]) { const paragraph = document.createElement("p"); paragraph.textContent = line; box.append(paragraph); }
+              map.setFilter("activity-selected", ["==", ["get", "id"], cell["id"]]);
+              zonePopup.setLngLat(e.lngLat).setDOMContent(box).addTo(map);
+            });
+            zonePopup.on("close", () => { if (map && !disposed) map.setFilter("activity-selected", ["==", ["get", "id"], ""]); });
             const fpop = new ml.Popup({ closeButton: true, offset: 8, maxWidth: "280px" });
             for (const l of ["f-lim", "f-cor"]) {
               map.on("mouseenter", l, () => { if (map) map.getCanvas().style.cursor = "pointer"; });
@@ -253,13 +283,27 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, even
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    const visible = events.filter((e) => (e.classification === "panama" ? layers.panama : layers.maritima));
+    const visible = visibleEvents;
     (map.getSource("events") as GeoJSONSource | undefined)?.setData(toFeatures([...visible].sort((a, b) => (a.primary.magnitude ?? 0) - (b.primary.magnitude ?? 0))));
     (map.getSource("columns") as GeoJSONSource | undefined)?.setData(toColumns(visible));
     const vis = layers.provinces ? "visible" : "none";
     map.setLayoutProperty("prov-fill", "visibility", vis);
     map.setLayoutProperty("prov-line", "visibility", vis);
-  }, [ready, events, layers.panama, layers.maritima, layers.provinces]);
+  }, [ready, visibleEvents, layers.provinces]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    activityPopup.current?.remove();
+    map.getSource<GeoJSONSource>("activity")?.setData(activityGeoJSON(statistics));
+    const magnitude = v.activityMetric === "magnitude";
+    // Absolute, labelled bins stay stable across zoom, region and period changes.
+    const value = magnitude ? ["coalesce", ["get", "maxMagnitude"], -1] : ["get", "count"];
+    const color = magnitude
+      ? ["step", value, cssColor("--mag-0"), 0, cssColor("--mag-1"), 3, cssColor("--mag-2"), 4, cssColor("--mag-3"), 5, cssColor("--mag-4"), 6, cssColor("--mag-5")]
+      : ["step", value, cssColor("--mag-1"), 2, cssColor("--mag-2"), 5, cssColor("--mag-3"), 10, cssColor("--mag-4"), 20, cssColor("--mag-5")];
+    map.setPaintProperty("activity-fill", "fill-color", color as never);
+  }, [ready, statistics, v.activityMetric]);
 
   // Vista: mapa base, relieve 3D, fallas, columnas, calor
   useEffect(() => {
@@ -273,7 +317,8 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, even
     map.setPaintProperty("hill", "hillshade-exaggeration", sat ? 0.25 : 0.5);
     for (const l of ["f-glow", "f-lim", "f-cor", "f-focus"]) map.setLayoutProperty(l, "visibility", vis(v.faults));
     map.setLayoutProperty("ev-cols", "visibility", vis(v.columns));
-    map.setLayoutProperty("ev-heat", "visibility", vis(v.heat));
+    for (const id of ["activity-fill", "activity-line", "activity-selected"]) map.setLayoutProperty(id, "visibility", vis(v.heat));
+    for (const id of ["ev-halo", "ev-pulse"]) map.setLayoutProperty(id, "visibility", vis(!v.heat));
   }, [ready, v.basemap, v.faults, v.columns, v.heat]);
 
   useEffect(() => {
@@ -350,6 +395,11 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, even
   return (
     <div className={cn("relative overflow-hidden bg-surface", className)}>
       <div ref={ref} className="h-full w-full" role="region" aria-label="Mapa de sismos de Panamá" />
+      {v.heat && ready && <div className="activity-map-key" aria-label="Leyenda de actividad por zona">
+        <strong>{v.activityMetric === "magnitude" ? "Magnitud máxima por zona" : "Sismos por zona"}</strong>
+        <div>{(v.activityMetric === "magnitude" ? ["< 3", "3–3.9", "4–4.9", "5–5.9", "≥ 6"] : ["1", "2–4", "5–9", "10–19", "≥ 20"]).map((label, i) => <span key={label}><i className={`bg-mag-${i + 1}`} />{label}</span>)}</div>
+        <p>Hexágonos ~{CELL_AREA_KM2} km² · sin color = sin registros en esta selección</p>
+      </div>}
       {!ready && !failed && <div className="absolute inset-0 grid place-items-center meta">Cargando mapa…</div>}
       {failed && <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-muted-foreground">El mapa no se pudo cargar: {failed}</div>}
     </div>
