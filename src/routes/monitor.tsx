@@ -127,7 +127,7 @@ function Monitor() {
 
   return (
     <main className="relative h-[calc(100dvh-3.5rem)] overflow-hidden">
-      <SeismicMap {...(focusedFault && { focusedFault })} {...(focusedPlate && { focusedPlate })} events={mapEvents} layers={layers} view={view} selectedId={selected?.id ?? null} onSelect={selectEvent} {...(epicenter && { epicenter })} className="absolute inset-0" padding={{ top: 60, bottom: 160, left: 340, right: 60 }} />
+      <SeismicMap legendPlacement="monitor" {...(focusedFault && { focusedFault })} {...(focusedPlate && { focusedPlate })} events={mapEvents} layers={layers} view={view} selectedId={selected?.id ?? null} onSelect={selectEvent} {...(epicenter && { epicenter })} className="absolute inset-0" padding={{ top: 60, bottom: 160, left: 340, right: 60 }} />
 
       {/* Herramientas contextuales */}
       <div className="glass absolute left-3 top-3 z-10 w-[min(320px,calc(100%-1.5rem))] rounded-xl border border-hairline shadow-float">
@@ -145,7 +145,7 @@ function Monitor() {
         </div>
         {toolsOpen && (
           <div className="max-h-[calc(100dvh-12rem)] space-y-5 overflow-y-auto overscroll-contain border-t border-hairline px-4 py-4">
-            <PeriodSwitch value={period} onChange={setPeriod} options={["24h", "7d", "30d", "90d", "365d"]} />
+            <PeriodSwitch className="flex flex-wrap" value={period} onChange={setPeriod} options={["24h", "7d", "30d", "90d", "365d"]} />
             <div>
               <div className="flex justify-between text-sm"><label htmlFor="minmag">Magnitud mínima</label><span className="num font-mono">{minMag === 0 ? "Todas" : `≥ ${minMag.toFixed(1)}`}</span></div>
               <Slider id="minmag" className="mt-3" min={0} max={6} step={0.5} value={[minMag]} onValueChange={(v) => setMinMag(v[0] ?? 0)} aria-label="Magnitud mínima" />

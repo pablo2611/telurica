@@ -383,3 +383,6 @@
 .activity-monitor-help select:focus-visible, .activity-monitor-help a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
 .activity-metric-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+
+.activity-map-key-monitor { left: auto; right: 12px; top: 12px; bottom: auto; }
+@media (max-width: 767px) { .activity-map-key-monitor { top: 90px; } }

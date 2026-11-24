@@ -27,6 +27,7 @@ export interface MapView {
 interface Props {
   events: SeismicEvent[];
   activity?: SpatialActivity | undefined;
+  legendPlacement?: "bottom" | "monitor";
   focusedFault?: Fault;
   focusedPlate?: Plate;
   epicenter?: [number, number];
@@ -102,7 +103,7 @@ function toColumns(events: SeismicEvent[]) {
   };
 }
 
-export function SeismicMap({ events, activity, focusedFault, focusedPlate, epicenter, eventBounds, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
+export function SeismicMap({ events, activity, legendPlacement = "bottom", focusedFault, focusedPlate, epicenter, eventBounds, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
   const v: MapView = { basemap: "satellite", terrain: false, faults: true, columns: false, heat: false, ...view };
   const visibleEvents = useMemo(() => events.filter(e => e.classification === "panama" ? layers.panama : e.classification === "maritima" && layers.maritima), [events, layers.panama, layers.maritima]);
   const statistics = useMemo(() => activity ?? spatialActivity(visibleEvents), [activity, visibleEvents]);
@@ -395,7 +396,7 @@ export function SeismicMap({ events, activity, focusedFault, focusedPlate, epice
   return (
     <div className={cn("relative overflow-hidden bg-surface", className)}>
       <div ref={ref} className="h-full w-full" role="region" aria-label="Mapa de sismos de Panamá" />
-      {v.heat && ready && <div className="activity-map-key" aria-label="Leyenda de actividad por zona">
+      {v.heat && ready && <div className={cn("activity-map-key", legendPlacement === "monitor" && "activity-map-key-monitor")} aria-label="Leyenda de actividad por zona">
         <strong>{v.activityMetric === "magnitude" ? "Magnitud máxima por zona" : "Sismos por zona"}</strong>
         <div>{(v.activityMetric === "magnitude" ? ["< 3", "3–3.9", "4–4.9", "5–5.9", "≥ 6"] : ["1", "2–4", "5–9", "10–19", "≥ 20"]).map((label, i) => <span key={label}><i className={`bg-mag-${i + 1}`} />{label}</span>)}</div>
         <p>Hexágonos ~{CELL_AREA_KM2} km² · sin color = sin registros en esta selección</p>
