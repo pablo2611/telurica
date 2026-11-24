@@ -9,6 +9,7 @@ import { SUGGESTIONS, isSeismicQuestion, type AssistantReply } from "@/features/
 import { catalogAnswer } from "@/features/assistant/catalog-answer";
 import { seismicQuery } from "@/features/seismic/queries";
 import { periodStart } from "@/features/seismic/periods";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/savia")({
   head: () => ({ meta: [
@@ -25,6 +26,7 @@ const date = (value: string) => new Intl.DateTimeFormat("es-PA", {
 
 function Savia() {
   const queryClient = useQueryClient();
+  const hydrated = useHydrated();
   const [question, setQuestion] = useState("");
   const [period, setPeriod] = useState<"24h" | "7d" | "30d">("7d");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -96,7 +98,7 @@ function Savia() {
           <p className="mt-2 text-sm text-muted-foreground">Cada pregunta analiza el período elegido. Las respuestas pueden contener errores. Revisa sus cifras y fuentes.</p>
           <div className="my-5 grid gap-2 sm:grid-cols-2">
             {SUGGESTIONS.map(suggestion => (
-              <button key={suggestion} type="button" disabled={pending} onClick={() => {
+              <button key={suggestion} type="button" disabled={pending || !hydrated} onClick={() => {
                 setQuestion(suggestion); input.current?.focus();
                 if (suggestion.includes("mapa")) setVisual("map");
               }} className="min-h-12 rounded-xl border border-border p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-primary/5 disabled:opacity-50">{suggestion}</button>
@@ -112,7 +114,7 @@ function Savia() {
             ))}
           </div>
           <form action="/api/chat" method="post" onSubmit={submit} aria-labelledby="chat-title" className="mt-6 space-y-4">
-            <fieldset disabled={pending}>
+            <fieldset disabled={pending || !hydrated}>
               <legend className="mb-2 text-sm font-medium">Período de la consulta</legend>
               <div className="flex flex-wrap gap-2">
                 {([["24h", "24 horas"], ["7d", "7 días"], ["30d", "30 días"]] as const).map(([value, label]) => (
@@ -125,7 +127,7 @@ function Savia() {
             <div>
               <label htmlFor="savia-question" className="mb-2 block text-sm font-medium">Tu pregunta sobre Panamá</label>
               <textarea ref={input} id="savia-question" name="question" value={question} onChange={event => { setQuestion(event.target.value); setError(""); }}
-                required minLength={8} maxLength={600} rows={3} disabled={pending}
+                required minLength={8} maxLength={600} rows={3} disabled={pending || !hydrated}
                 aria-describedby="savia-help" aria-invalid={!!error}
                 onKeyDown={event => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -142,7 +144,7 @@ function Savia() {
               <p role="status" className="max-w-sm text-xs text-muted-foreground">
                 {pending ? "Consultando las fuentes y preparando tu respuesta…" : status.isError ? "No se pudo comprobar la disponibilidad del chat." : status.data?.message ?? "Comprobando disponibilidad…"}
               </p>
-              <Button type="submit" disabled={pending} className="min-h-12 gap-2">
+              <Button type="submit" disabled={pending || !hydrated} className="min-h-12 gap-2">
                 {pending ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
                 {pending ? "Consultando" : "Consultar a Savia"}
               </Button>
