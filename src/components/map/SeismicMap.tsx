@@ -110,6 +110,7 @@ export function SeismicMap({ events, activity, legendPlacement = "bottom", focus
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const activityPopup = useRef<Popup | null>(null);
+  const eventRadius = useRef<unknown>(4);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const onSelectRef = useRef(onSelect);
@@ -167,6 +168,7 @@ export function SeismicMap({ events, activity, legendPlacement = "bottom", focus
           const base = ["interpolate", ["exponential", 1.7], ["get", "mag"], 0, 2.5, 3, 4.5, 5, 10, 6, 16, 7.7, 30];
           const RZ = (k: number, offset = 0) => ["interpolate", ["linear"], ["zoom"], 4, ["+", ["*", base, 0.6 * k], offset], 7, ["+", ["*", base, k], offset], 11, ["+", ["*", base, 2 * k], offset]];
           const radius = RZ(1);
+          eventRadius.current = radius;
           map.addSource("activity", { type: "geojson", data: activityGeoJSON({ cells: [], total: 0, skipped: 0 }) });
           map.addLayer({ id: "activity-fill", type: "fill", source: "activity", layout: { visibility: "none" }, paint: { "fill-color": cssColor("--primary"), "fill-opacity": 0.68 } });
           map.addLayer({ id: "activity-line", type: "line", source: "activity", layout: { visibility: "none" }, paint: { "line-color": cssColor("--foreground"), "line-width": 1, "line-opacity": 0.55 } });
@@ -320,6 +322,10 @@ export function SeismicMap({ events, activity, legendPlacement = "bottom", focus
     map.setLayoutProperty("ev-cols", "visibility", vis(v.columns));
     for (const id of ["activity-fill", "activity-line", "activity-selected"]) map.setLayoutProperty(id, "visibility", vis(v.heat));
     for (const id of ["ev-halo", "ev-pulse"]) map.setLayoutProperty(id, "visibility", vis(!v.heat));
+    // In the statistical view, individual markers remain clickable without obscuring cells.
+    map.setPaintProperty("ev-dot", "circle-radius", (v.heat ? 2 : eventRadius.current) as never);
+    map.setPaintProperty("ev-dot", "circle-opacity", v.heat ? 0.45 : 0.9);
+    map.setPaintProperty("ev-dot", "circle-stroke-width", (v.heat ? 0.5 : ["case", ["==", ["get", "zone"], "maritima"], 1.6, 1]) as never);
   }, [ready, v.basemap, v.faults, v.columns, v.heat]);
 
   useEffect(() => {
