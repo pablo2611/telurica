@@ -75,7 +75,7 @@ export async function handleAssistant(request: Request) {
     if (!isSeismicQuestion(input.question)) throw new ChatError(422, "Puedo ayudarte con sismos, fuentes y estadísticas de Panamá. Reformula tu pregunta dentro de ese tema.");
     if (!isConfigured()) throw new ChatError(503, "Savia está en preparación. El chat se habilitará cuando estén listas las protecciones de consumo.");
     release = await reserve(request);
-    const cacheKey = "telurica:savia:v1:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
+    const cacheKey = "telurica:savia:v2:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
     const cached = await redis<string | null>(["GET", cacheKey]);
     if (cached) return json(JSON.parse(cached));
     const [catalog, tsunami] = await Promise.all([

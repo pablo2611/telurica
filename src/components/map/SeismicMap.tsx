@@ -39,20 +39,20 @@ interface Props {
 const PANAMA_BOUNDS: [[number, number], [number, number]] = [[-83.2, 6.9], [-77.1, 9.75]];
 const esri = (s: string) => [`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`];
 const DEM_TILES = ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"];
-/** Estilo base: imágenes satelitales Esri + etiquetas, mapa oscuro CARTO y relieve AWS Terrain Tiles (terrarium). */
+/** Estilo base: imágenes satelitales Esri + etiquetas, mapa oscuro OpenStreetMap y relieve AWS Terrain Tiles (terrarium). */
 const BASE_STYLE = {
   version: 8 as const,
   sources: {
     sat: { type: "raster" as const, tiles: esri("World_Imagery"), tileSize: 256, maxzoom: 19, attribution: "Imágenes © Esri, Maxar, Earthstar Geographics" },
     labels: { type: "raster" as const, tiles: esri("Reference/World_Boundaries_and_Places"), tileSize: 256, maxzoom: 19 },
-    dark: { type: "raster" as const, tiles: ["a", "b", "c"].map((x) => `https://${x}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png`), tileSize: 256, attribution: "© OpenStreetMap · © CARTO" },
+    dark: { type: "raster" as const, tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: "© OpenStreetMap contributors" },
     dem: { type: "raster-dem" as const, tiles: DEM_TILES, tileSize: 256, encoding: "terrarium" as const, maxzoom: 13, attribution: "Relieve: AWS Terrain Tiles" },
     demhs: { type: "raster-dem" as const, tiles: DEM_TILES, tileSize: 256, encoding: "terrarium" as const, maxzoom: 13 },
   },
   layers: [
     { id: "bg", type: "background" as const, paint: { "background-color": "#0b1519" } },
     { id: "sat", type: "raster" as const, source: "sat", paint: { "raster-contrast": 0.08, "raster-fade-duration": 200 } },
-    { id: "dark", type: "raster" as const, source: "dark", layout: { visibility: "none" as const }, paint: { "raster-fade-duration": 200 } },
+    { id: "dark", type: "raster" as const, source: "dark", layout: { visibility: "none" as const }, paint: { "raster-fade-duration": 200, "raster-saturation": -1, "raster-brightness-max": 0.42, "raster-brightness-min": 0.02, "raster-contrast": 0.15 } },
     { id: "hill", type: "hillshade" as const, source: "demhs", paint: { "hillshade-exaggeration": 0.25 } },
     { id: "labels", type: "raster" as const, source: "labels", paint: { "raster-opacity": 0.9 } },
   ],

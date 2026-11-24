@@ -28,3 +28,9 @@
 - [RSS de Google News](https://news.google.com/rss/search?q=sismo%20Panam%C3%A1&hl=es-419&gl=PA&ceid=PA:es-419): consulta fija desde una server function, con caché de 15 minutos por instancia y tiempo límite de ocho segundos. Se muestran titular, medio, fecha y enlace HTTPS. El sitio no reproduce el texto de los artículos.
 
 El feed horario respondió HTTP 403 sin CORS desde la red de prueba. El sondeo pasa por el servidor de Telúrica para mantener el endpoint oficial y evitar que el navegador falle con CORS.
+
+## Mapa oscuro y Savia
+
+La verificación de producción del 23 de noviembre de 2026 detectó que las teselas públicas CARTO devolvían HTTP 200 con la imagen «API KEY REQUIRED». Se sustituyó esa fuente raster por https://tile.openstreetmap.org/{z}/{x}/{y}.png, con atribución visible de OpenStreetMap y un tratamiento raster desaturado y oscurecido. El satélite Esri y el relieve AWS se mantienen como capas independientes.
+
+Las teselas se solicitan directamente desde el navegador, con su User-Agent y Referer normales y caché HTTP. No se ofrece descarga masiva, precarga de regiones ni uso sin conexión. Política de uso: https://operations.osmfoundation.org/policies/tiles/. La disponibilidad de este servicio comunitario es de mejor esfuerzo.
