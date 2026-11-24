@@ -20,7 +20,7 @@ function SyncStatus() {
       ? "Consultando fuentes…"
       : `${failing ? `${2 - failing}/2 fuentes` : "Fuentes al día"} · ${fmtTime(data.generatedAt)}`;
   return (
-    <Link to="/fuentes" className="group hidden items-center gap-2 meta hover:text-foreground md:flex" title="Ver estado de las fuentes">
+    <Link to="/fuentes" className="group hidden items-center gap-2 meta hover:text-foreground md:flex lg:hidden xl:flex" title="Ver estado de las fuentes">
       <span className="relative flex size-2">
         {isFetching && <span className={cn("absolute inline-flex size-full rounded-full animate-blip", tone)} />}
         <span className={cn("relative inline-flex size-2 rounded-full", tone)} />
@@ -41,13 +41,13 @@ export function Logo() {
 export function SiteHeader() {
   return (
     <header className="glass sticky top-0 z-40 border-b border-hairline pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 lg:gap-8 lg:px-8">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 xl:gap-8 lg:px-8">
         <Logo />
         <nav aria-label="Principal" className="hidden lg:block">
           <ul className="flex items-center gap-0.5 rounded-full border border-hairline bg-surface/50 p-1">
             {NAV.map((n) => (
               <li key={n.to}>
-                <Link to={n.to} className="group relative block rounded-full px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary-foreground">
+                <Link to={n.to} className="group relative block rounded-full px-2.5 py-1.5 text-xs xl:text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary-foreground">
                   {({ isActive }) => (
                     <>
                       {isActive && (

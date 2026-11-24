@@ -28,5 +28,5 @@ export const SUGGESTIONS = [
 ];
 
 export function isSeismicQuestion(question: string) {
-  return /sism|terremot|tembl|epicentr|magnitud|tect[oó]nic|falla|tsunami|panam[aá]|chiriqu[ií]|veraguas|azuero|los santos|cocl[eé]|dari[eé]n|usgs|emsc|noaa|sinaproc|geociencia|cat[aá]logo|provinci|riesgo.*terreno/i.test(question);
+  return /fuente|bolet[ií]n|profundidad|intensidad|sism|terremot|tembl|epicentr|magnitud|tect[oó]nic|falla|tsunami|panam[aá]|chiriqu[ií]|veraguas|azuero|los santos|cocl[eé]|dari[eé]n|usgs|emsc|noaa|sinaproc|geociencia|cat[aá]logo|provinci|riesgo.*terreno/i.test(question);
 }

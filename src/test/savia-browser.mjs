@@ -16,7 +16,7 @@ assert.equal(foreign.status, 403);
 
 const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {
-  for (const width of [390, 1366]) {
+  for (const width of [390, 1024, 1366]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
