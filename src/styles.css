@@ -504,3 +504,5 @@
 }
 
 .terrain-context > div { display: grid; gap: 7px; min-width: 0; }
+
+.terrain-tile-status { position: absolute; right: 12px; bottom: 36px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--muted-foreground); background: var(--background); font-size: 10px; pointer-events: none; }

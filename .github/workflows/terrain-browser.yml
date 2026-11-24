@@ -1,6 +1,9 @@
 name: Verify terrain explorer
 on:
   workflow_dispatch:
+concurrency:
+  group: terrain-browser-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

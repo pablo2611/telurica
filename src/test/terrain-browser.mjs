@@ -22,7 +22,8 @@ try {
     await page.locator(".terrain-metrics article").first().getByText(/^-?\d+ m$/).waitFor({ timeout: 25000 });
     assert.match(await page.locator(".terrain-metrics article").nth(1).locator("strong").innerText(), /^\d+(?:\.\d+)?°$/);
     await page.locator(".terrain-map-label").getByText("Relieve real · escala vertical 1×", { exact: true }).waitFor({ timeout: 25000 });
-    await page.locator(".terrain-workspace").screenshot({ path: `test-results/terrain/${width}-rural.png` });
+    await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
+    await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-rural.png` });
     await page.getByLabel("Latitud", { exact: true }).fill("9.93");
     await page.getByLabel("Longitud", { exact: true }).fill("-84.09");
     await page.getByRole("button", { name: "Ubicar coordenadas", exact: true }).click();
@@ -33,8 +34,9 @@ try {
     await page.getByRole("button", { name: "Relieve 3D", exact: true }).click();
     await page.locator(".terrain-map-label").getByText("Edificios 3D · OSM", { exact: true }).waitFor();
     await page.getByLabel("Radio alrededor del punto", { exact: true }).selectOption("5");
-    await page.waitForTimeout(1800);
-    await page.locator(".terrain-workspace").screenshot({ path: `test-results/terrain/${width}-city.png` });
+    await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
+    assert.ok(Number(await page.locator(".terrain-viewport").getAttribute("data-visible-buildings")) > 0, "No se renderizaron edificios en la ciudad");
+    await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-city.png` });
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Descargar ficha", exact: true }).click();
     const download = await downloadPromise;

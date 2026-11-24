@@ -21,6 +21,8 @@ export function TerrainExplorer({ point, events, onPick, satellite, terrain, bui
   const marker = useRef<Marker | null>(null);
   const pick = useRef(onPick); pick.current = onPick;
   const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState(false);
+  const [visibleBuildings, setVisibleBuildings] = useState(0);
   const [failure, setFailure] = useState("");
   const [layerWarning, setLayerWarning] = useState("");
   useEffect(() => {
@@ -36,6 +38,13 @@ export function TerrainExplorer({ point, events, onPick, satellite, terrain, bui
           fitBoundsOptions: { padding: 24 }, maxBounds: [[-84.2, 5.8], [-76.2, 11]], maxZoom: 18, maxPitch: 70,
           attributionControl: { compact: true }, cooperativeGestures: true });
         map.current = instance;
+        instance.on("movestart", () => { if (!disposed) setSettled(false); });
+        instance.on("sourcedataloading", () => { if (!disposed) setSettled(false); });
+        instance.on("idle", () => {
+          if (disposed || !instance) return;
+          setSettled(true);
+          setVisibleBuildings(instance.getLayer("terrain-buildings") ? instance.queryRenderedFeatures({ layers: ["terrain-buildings"] }).length : 0);
+        });
         instance.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right");
         instance.addControl(new ml.FullscreenControl(), "top-right");
         instance.addControl(new ml.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -90,11 +99,12 @@ export function TerrainExplorer({ point, events, onPick, satellite, terrain, bui
     map.current?.getSource<GeoJSONSource>("terrain-events")?.setData({ type: "FeatureCollection", features: events.map(event => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [event.primary.longitude, event.primary.latitude] } })) });
   }, [ready, events]);
 
-  return <div className="terrain-viewport">
+  return <div className="terrain-viewport" data-map-settled={settled} data-visible-buildings={visibleBuildings}>
     <div ref={host} className="terrain-canvas" role="region" aria-label="Mapa 3D para explorar terrenos de Panamá" />
     {!ready && !failure && <p className="terrain-map-loading" role="status">Cargando el visor de Panamá…</p>}
     {failure && <p className="terrain-map-loading">{failure}</p>}
     {ready && <span className="terrain-map-label">{terrain ? "Relieve real · escala vertical 1×" : buildings ? "Edificios 3D · OSM" : "Vista desde arriba"}</span>}
+    {ready && !settled && <span className="terrain-tile-status">Actualizando la vista…</span>}
     {layerWarning && <p className="terrain-layer-warning" role="status">{layerWarning}</p>}
   </div>;
 }
