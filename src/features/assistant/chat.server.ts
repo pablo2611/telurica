@@ -86,7 +86,7 @@ export async function handleAssistant(request: Request) {
       provinces, days,
       latest: catalog.events.slice(0, 8).map(e => ({ id: e.id, province: e.province, nearProvince: e.nearestProvince, classification: e.classification, magnitude: e.primary.magnitude, depthKm: e.primary.depthKm, time: e.primary.occurredAtUtc })),
       strongest: summary.strongest ? { magnitude: summary.maxMag, time: summary.strongest.primary.occurredAtUtc, latitude: summary.strongest.primary.latitude, longitude: summary.strongest.primary.longitude, impact: summary.strongest.primary.impact ?? null } : null,
-      sources: catalog.sources.map(({ name, url, state }) => ({ name, url, state })),
+      sources: [...catalog.sources, tsunami.source].map(({ name, url, state }) => ({ name, url, state })),
       tsunami: { state: tsunami.source.state, bulletins: tsunami.bulletins.slice(0, 3) },
       faults: FAULTS.map(f => ({ name: f.n, type: f.t })),
     };
