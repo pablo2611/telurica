@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, ChartColumn, MapPinned, Send, ShieldCheck, Sparkles, Square, Table2 } from "lucide-react";
+import { Bot, ChartColumn, MapPinned, Send, ShieldCheck, Sparkles, Square, Table2, Trash2 } from "lucide-react";
 import { SaviaResult, saviaDate } from "@/components/assistant/SaviaResult";
 import { SaviaThinking } from "@/components/assistant/SaviaThinking";
 import { SUGGESTIONS, isSeismicQuestion, type AssistantReply, type ChatPhase, type AssistantInput } from "@/features/assistant/contract";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/savia")({
   component: Savia,
 });
 
-type Turn = { id: number; question: string; reply: AssistantReply };
+type Turn = { id: number; question: string; reply: AssistantReply; seconds: number };
 const icons = [Sparkles, Table2, MapPinned, ChartColumn];
 
 function Savia() {
@@ -33,6 +33,8 @@ function Savia() {
   const [phase, setPhase] = useState<ChatPhase>("planning");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const started = useRef(0);
   const input = useRef<HTMLTextAreaElement>(null);
   const active = useRef<AbortController | null>(null);
   const resultAnchor = useRef<HTMLDivElement>(null);
@@ -43,6 +45,27 @@ function Savia() {
   useEffect(() => {
     if (pendingQuestion) pendingAnchor.current?.scrollIntoView({ behavior: "instant", block: "center" });
   }, [pendingQuestion]);
+
+  useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
+  useEffect(() => {
+    if (!pending) return;
+    const timer = window.setInterval(() => setElapsed(Math.floor((performance.now() - started.current) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [pending]);
+
+  function stop(clear = false) {
+    active.current?.abort();
+    active.current = null;
+    setPendingQuestion("");
+    setElapsed(0);
+    setError("");
+    if (clear) {
+      setTurns([]);
+      setQuestion("");
+      setNotice("Chat limpiado. Puedes iniciar otra conversación.");
+    } else setNotice("Consulta detenida. Puedes editar tu pregunta y volver a enviarla.");
+    requestAnimationFrame(() => input.current?.focus());
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,16 +79,21 @@ function Savia() {
     }
     const controller = new AbortController();
     active.current = controller;
+    started.current = performance.now();
+    setElapsed(0);
+    const current = () => active.current === controller && !controller.signal.aborted;
+    const deadline = AbortSignal.timeout(45000);
+    const signal = AbortSignal.any([controller.signal, deadline]);
     setPendingQuestion(submitted);
     setPhase("planning");
     setError("");
     setNotice("");
     const data = { question: submitted, period, history };
     const addReply = (reply: AssistantReply) => {
-      if (controller.signal.aborted) return;
+      if (!current() || deadline.aborted) return;
       sequence.current += 1;
       const id = sequence.current;
-      setTurns(previous => [...previous, { id, question: submitted, reply: { ...reply, period: requestedPeriod(data) } }]);
+      setTurns(previous => [...previous, { id, question: submitted, seconds: Math.max(1, Math.round((performance.now() - started.current) / 1000)), reply: { ...reply, period: requestedPeriod(data) } }]);
       setQuestion("");
       setPeriod(requestedPeriod(data));
       requestAnimationFrame(() => resultAnchor.current?.scrollIntoView({ behavior: "instant", block: "start" }));
@@ -73,25 +101,36 @@ function Savia() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-        body: JSON.stringify(data), signal: AbortSignal.any([controller.signal, AbortSignal.timeout(65000)]),
+        body: JSON.stringify(data), signal,
       });
-      addReply(await readAssistant(response, setPhase));
+      addReply(await readAssistant(response, next => { if (current()) setPhase(next); }));
     } catch {
-      if (controller.signal.aborted) {
-        setNotice("Consulta detenida. Puedes editar tu pregunta y volver a enviarla.");
+      if (!current()) return;
+      if (deadline.aborted) {
+        setError("La consulta superó los 45 segundos. Intenta con un período más corto o pide una tabla para consultar los datos directamente.");
       } else {
         try {
           setPhase("sources");
-          const catalog = await queryClient.fetchQuery({ ...seismicQuery(periodStart(requestedPeriod(data))), retry: false, staleTime: 60_000 });
-          if (!controller.signal.aborted) addReply(catalogAnswer(catalog, submitted, history.at(-1)));
+          setNotice("La explicación no está disponible; recuperando los datos del catálogo.");
+          const catalog = await Promise.race([
+            queryClient.fetchQuery({ ...seismicQuery(periodStart(requestedPeriod(data))), retry: false, staleTime: 60_000 }),
+            new Promise<never>((_, reject) => {
+              if (signal.aborted) reject(signal.reason);
+              else signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+            }),
+          ]);
+          if (current() && !deadline.aborted) addReply(catalogAnswer(catalog, submitted, history.at(-1)));
         } catch {
-          setError("Las fuentes están temporalmente sin respuesta. Puedes consultar Fuentes y volver a intentarlo.");
-          input.current?.focus();
+          if (current()) setError(deadline.aborted
+            ? "La consulta superó los 45 segundos. Puedes volver a intentarlo con un período más corto."
+            : "Las fuentes están temporalmente sin respuesta. Puedes consultar Fuentes y volver a intentarlo.");
         }
       }
     } finally {
-      active.current = null;
-      setPendingQuestion("");
+      if (active.current === controller) {
+        active.current = null;
+        setPendingQuestion("");
+      }
     }
   }
 
@@ -99,7 +138,9 @@ function Savia() {
     <main className="savia-page">
       <header className="savia-topline">
         <span><span className="savia-signal" aria-hidden="true" /> Savia · Telúrica</span>
-        <Link to="/fuentes"><ShieldCheck className="size-4" aria-hidden="true" /> Fuentes de los datos</Link>
+        <div className="savia-top-actions">
+          <button type="button" className="savia-clear" disabled={!hydrated || (!engaged && !question)} onClick={() => stop(true)}><Trash2 className="size-4" aria-hidden="true" /> Limpiar chat</button>
+        <Link to="/fuentes"><ShieldCheck className="size-4" aria-hidden="true" /> Fuentes de los datos</Link></div>
       </header>
       <section className={engaged ? "savia-intro savia-intro-compact" : "savia-intro"} aria-labelledby="savia-title">
         <div className="savia-orb" aria-hidden="true"><span /><Bot /></div>
@@ -126,12 +167,12 @@ function Savia() {
                 <div className="savia-author"><span className="savia-avatar"><Bot aria-hidden="true" /></span><strong>Savia</strong><span>{turn.reply.mode === "catalog" ? "Datos del catálogo" : "Análisis con IA"}</span></div>
                 <div className="savia-prose">{turn.reply.answer.split("\n\n").map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}</div>
                 <SaviaResult reply={turn.reply} question={turn.question} />
-                <p className="savia-footnote">Datos consultados el {saviaDate(turn.reply.generatedAt)} · hora de Panamá</p>
+                <p className="savia-footnote">Datos consultados el {saviaDate(turn.reply.generatedAt)} · hora de Panamá · Respuesta en {turn.seconds} s</p>
               </div>
             </article>
           ))}
         </div>
-        {pending && <div className="savia-turn"><div className="savia-user-message"><h2>{pendingQuestion}</h2></div><div ref={pendingAnchor}><SaviaThinking phase={phase} /></div></div>}
+        {pending && <div className="savia-turn"><div className="savia-user-message"><h2>{pendingQuestion}</h2></div><div ref={pendingAnchor}><SaviaThinking phase={phase} elapsed={elapsed} onStop={() => stop()} /></div></div>}
       </section>
 
       <form action="/api/chat" method="post" onSubmit={submit} aria-label="Pregunta a Savia" className="savia-composer">
@@ -153,7 +194,7 @@ function Savia() {
               <option value="24h">Últimas 24 horas</option><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option><option value="365d">Último año</option>
             </select>
           </div>
-          {pending ? <button type="button" className="savia-submit savia-stop" onClick={() => active.current?.abort()}><Square className="size-4" aria-hidden="true" /> Detener</button>
+          {pending ? <button type="button" className="savia-submit savia-stop" onClick={() => stop()}><Square className="size-4" aria-hidden="true" /> Detener</button>
             : <button type="submit" className="savia-submit" disabled={!hydrated}><Send className="size-4" aria-hidden="true" /> Consultar a Savia</button>}
         </div>
         {error && <p role="alert" className="savia-form-error">{error}</p>}

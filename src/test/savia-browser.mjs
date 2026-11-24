@@ -23,7 +23,7 @@ try {
       const input = route.request().postDataJSON();
       assert.equal(input.period, "7d");
       assert.ok(input.question.length >= 8);
-      await new Promise(resolve => setTimeout(resolve, 700));
+      await new Promise(resolve => setTimeout(resolve, input.question.includes("cancelar") ? 2500 : 700));
       const wantsMap = input.question.includes("mapa");
       const reply = {
         answer: "Respuesta de prueba <img src=x onerror=alert(1)>",
@@ -61,6 +61,26 @@ try {
     await page.getByRole("img", { name: "Gr√°fica de evoluci√≥n diaria de sismos terrestres y mar√≠timos" }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: `test-results/savia/${width}-map.png`, fullPage: true });
+    await page.getByRole("button", { name: "Limpiar chat", exact: true }).click();
+    assert.equal(await articles.count(), 0);
+    await page.getByLabel("Tu pregunta sobre Panam·", { exact: true }).fill("Sismos de Panam· para cancelar");
+    await page.getByRole("button", { name: "Consultar a Savia", exact: true }).click();
+    await page.getByText("1 s transcurridos", { exact: true }).waitFor();
+    await page.screenshot({ path: `test-results/savia/${width}-thinking.png`, fullPage: true });
+    await page.getByRole("button", { name: "Limpiar chat", exact: true }).click();
+    await page.getByLabel("Tu pregunta sobre Panam·", { exact: true }).fill("Tabla de sismos de Panam·");
+    await page.getByRole("button", { name: "Consultar a Savia", exact: true }).click();
+    await page.getByRole("table").waitFor();
+    await page.waitForTimeout(2700);
+    assert.equal(await articles.count(), 1);
+    assert.equal(await articles.first().getByRole("heading").textContent(), "Tabla de sismos de Panam·");
+    await page.getByLabel("Tu pregunta sobre Panam·", { exact: true }).fill("Sismos de Panam· para cancelar");
+    await page.getByRole("button", { name: "Consultar a Savia", exact: true }).click();
+    await page.getByRole("button", { name: "Detener consulta", exact: true }).click();
+    await page.waitForTimeout(2700);
+    assert.equal(await articles.count(), 1);
+    assert.equal(await page.getByRole("progressbar").count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(errors, []);
     console.log(`Savia ${width}px: bienvenida, fases, tabla autom√°tica, mapa autom√°tico, gr√°fica, historial y texto seguro verificados`);
     await page.close();
