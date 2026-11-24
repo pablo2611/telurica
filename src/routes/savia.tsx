@@ -57,6 +57,7 @@ function Savia() {
     setNotice("");
     const data = { question: submitted, period, history };
     const addReply = (reply: AssistantReply) => {
+      if (controller.signal.aborted) return;
       sequence.current += 1;
       const id = sequence.current;
       setTurns(previous => [...previous, { id, question: submitted, reply }]);
