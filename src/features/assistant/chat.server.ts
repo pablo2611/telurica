@@ -67,7 +67,7 @@ export async function assistantStatus() {
 }
 
 async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: ChatPhase) => void): Promise<AssistantReply> {
-    const cacheKey = "telurica:savia:v8:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
+    const cacheKey = "telurica:savia:v9:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
     const cached = await redis<string | null>(["GET", cacheKey]).catch(() => null);
     if (cached) return JSON.parse(cached) as AssistantReply;
     emit("sources");
@@ -112,7 +112,7 @@ async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: 
           headers: { Authorization: `Bearer ${process.env["NVIDIA_API_KEY"]}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "nvidia/nemotron-3.5-lightning-30b-a3b",
-            messages: [{ role: "system", content: SYSTEM + (attempt ? "\nRepara el formato o contenido: usa solo cifras presentes en authoritativeData, no afirmes alertas activas ni seguridad. Devuelve exclusivamente el JSON solicitado." : "") }, { role: "user", content: JSON.stringify({ question: input.question, recentQuestions: input.history, requestedPresentation: presentation, authoritativeData: context }) }],
+            messages: [{ role: "system", content: SYSTEM + (attempt ? "\nRepara el formato o contenido: usa solo cifras presentes en authoritativeData, no afirmes alertas activas ni seguridad. Devuelve exclusivamente el JSON solicitado." : "") }, { role: "user", content: JSON.stringify({ question: input.question, recentQuestions: input.history, requestedPresentation: presentation, authoritativeData: attempt ? { scope: "Panamá y su zona marítima", hasRecords: catalog.events.length > 0, sources: context.sources.map(source => ({ name: source.name, state: source.state })), note: "La interfaz presenta todas las cifras, fechas y registros. Responde con orientación cualitativa, sin cifras ni tablas." } : context }) }],
             max_tokens: 1500, temperature: 0.2, stream: false,
             chat_template_kwargs: { enable_thinking: false },
             response_format: { type: "json_schema", json_schema: { name: "savia_answer", strict: true, schema: {
@@ -129,10 +129,13 @@ async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: 
         const parsed = outputSchema.safeParse(JSON.parse(content));
         if (!parsed.success) throw new ChatError(502, "La respuesta no pasó la validación. Inténtalo más tarde.");
         if (!parsed.data.inScope) throw new ChatError(422, "Savia responde sobre fuentes y actividad sísmica de Panamá. Prueba una pregunta sugerida.");
-        const allowed = new Set((JSON.stringify(context).match(/\d+(?:[.,]\d+)?/g) ?? []).map(value => Number(value.replace(",", "."))));
-        const quantities = parsed.data.answer.match(/\d+(?:[.,]\d+)?/g) ?? [];
-        if (quantities.some(value => !allowed.has(Number(value.replace(",", "."))))) throw new ChatError(502, "La explicación contiene cifras que no constan en las fuentes.");
-        output = parsed.data;
+        // Keep factual quantities in authoritative UI components. A valid AI answer
+        // containing digits is not rejected wholesale: retain its qualitative explanation.
+        const segmenter = new Intl.Segmenter("es", { granularity: "sentence" });
+        const explanation = parsed.data.answer.split("\n").flatMap(paragraph => [...segmenter.segment(paragraph)].map(part => part.segment.trim()))
+          .filter(sentence => sentence.length > 12 && !/\d|\||<[^>]*>|^[-:*\s]+$/.test(sentence)).join(" ");
+        if (!explanation) throw new ChatError(502, "Savia está preparando una explicación junto a los datos verificados.");
+        output = { ...parsed.data, answer: explanation };
         break;
       } catch (error) {
         failure = error;

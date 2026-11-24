@@ -146,10 +146,13 @@ describe("Savia grounded response", () => {
   });
 
   it("accepts grounded digits instead of rejecting valid provider responses", async () => {
-    const { r } = configure(JSON.stringify({ answer: "Se registraron 0 sismos en la selección.", inScope: true }));
+    const { r } = configure(JSON.stringify({ answer: "Se registraron 0 sismos en la selección. La selección no contiene registros.", inScope: true }));
     const response = await handleAssistant(r);
     expect(response.status).toBe(200);
-    expect((await response.json()).mode).toBe("ai");
+    const body = await response.json();
+    expect(body.mode).toBe("ai");
+    expect(body.answer).toContain("La selección no contiene registros.");
+    expect(body.answer).not.toContain("Se registraron 0 sismos");
   });
 
   it("repairs one invalid response and never substitutes catalog prose", async () => {
