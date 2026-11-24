@@ -37,6 +37,10 @@ try {
     await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
     assert.ok(Number(await page.locator(".terrain-viewport").getAttribute("data-visible-buildings")) > 0, "No se renderizaron edificios en la ciudad");
     await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-city.png` });
+    await page.emulateMedia({ media: "print" });
+    assert.equal(await page.locator(".terrain-workspace").isVisible(), false);
+    assert.equal(await page.locator(".terrain-report").isVisible(), true);
+    await page.emulateMedia({ media: "screen" });
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Descargar ficha", exact: true }).click();
     const download = await downloadPromise;

@@ -494,7 +494,7 @@
 }
 @media print {
   body:has(.terrain-page) { background: white !important; color: black !important; }
-  body:has(.terrain-page) > div header, body:has(.terrain-page) > div footer, body:has(.terrain-page) nav, .terrain-workspace, .terrain-header-note, .terrain-report-actions, .terrain-savia-link, .terrain-header, .terrain-sources, .terrain-nearby { display: none !important; }
+  body:has(.terrain-page) header, body:has(.terrain-page) footer, body:has(.terrain-page) nav, .terrain-workspace, .terrain-header-note, .terrain-report-actions, .terrain-savia-link, .terrain-header, .terrain-sources, .terrain-nearby { display: none !important; }
   .terrain-page { padding: 0; max-width: none; }
   .terrain-report { margin-top: 0; }
   .terrain-report *, .terrain-report { color: black !important; background: white !important; border-color: #999 !important; }
