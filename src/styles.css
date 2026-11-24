@@ -381,3 +381,5 @@
 .activity-monitor-help label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
 .activity-monitor-help select { min-height: 44px; padding: 4px 8px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; }
 .activity-monitor-help select:focus-visible, .activity-monitor-help a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+.activity-metric-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }

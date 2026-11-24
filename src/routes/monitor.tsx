@@ -81,7 +81,7 @@ function Monitor() {
   const [minMag, setMinMag] = useState(0);
   const [layers, setLayers] = useState<MapLayers>({ panama: true, maritima: true, provinces: true });
   const [view, setView] = useState<MapView>({ basemap: "satellite", terrain: false, faults: true, columns: false, heat: false });
-  const toggleView = (k: Exclude<keyof MapView, "basemap">) => setView((v) => ({ ...v, [k]: !v[k] }));
+  const toggleView = (k: "terrain" | "faults" | "columns" | "heat") => setView((v) => ({ ...v, [k]: !v[k] }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(!event);
   const [toolsOpen, setToolsOpen] = useState(!event);
@@ -144,7 +144,7 @@ function Monitor() {
           </button>
         </div>
         {toolsOpen && (
-          <div className="space-y-5 border-t border-hairline px-4 py-4">
+          <div className="max-h-[calc(100dvh-12rem)] space-y-5 overflow-y-auto overscroll-contain border-t border-hairline px-4 py-4">
             <PeriodSwitch value={period} onChange={setPeriod} options={["24h", "7d", "30d", "90d", "365d"]} />
             <div>
               <div className="flex justify-between text-sm"><label htmlFor="minmag">Magnitud mínima</label><span className="num font-mono">{minMag === 0 ? "Todas" : `≥ ${minMag.toFixed(1)}`}</span></div>
@@ -167,7 +167,7 @@ function Monitor() {
             </div>
             {view.heat && <div className="activity-monitor-help">
               <p>Zonas de actividad observada · cada hexágono agrupa ~374 km². Toca una zona para ver sus cifras.</p>
-              <label>Colorear por<select value={view.activityMetric ?? "count"} onChange={e => setView(v => ({ ...v, activityMetric: e.target.value as "count" | "magnitude" }))}><option value="count">Número de sismos</option><option value="magnitude">Magnitud máxima</option></select></label>
+              <div className="activity-metric-control"><label htmlFor="monitor-activity-metric">Colorear por</label><select id="monitor-activity-metric" value={view.activityMetric ?? "count"} onChange={e => setView(v => ({ ...v, activityMetric: e.target.value as "count" | "magnitude" }))}><option value="count">Número de sismos</option><option value="magnitude">Magnitud máxima</option></select></div>
               <p>Los colores cambian con el período y los filtros. Sin registros no significa ausencia de amenaza.</p>
               <a href="https://maps.openquake.org/map/gshm-v2026_1/" target="_blank" rel="noopener noreferrer">Consultar amenaza a largo plazo · GEM</a>
             </div>}
