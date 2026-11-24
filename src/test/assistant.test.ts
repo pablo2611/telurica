@@ -16,7 +16,7 @@ function request(value: unknown, origin = "https://telurica.vercel.app") {
   });
 }
 
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetAllMocks(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetAllMocks(); vi.restoreAllMocks(); });
 
 describe("Savia security boundaries", () => {
   it("accepts a bounded question and rejects extra fields or arbitrary periods", () => {
@@ -133,15 +133,50 @@ describe("Savia grounded response", () => {
     expect(stream).not.toContain("test-secret-never-send-to-browser");
   });
 
-  it("renders a requested table directly from sources without unnecessary inference", async () => {
-    const { fetch } = configure(JSON.stringify({ answer: "No se debe llamar al modelo.", inScope: true }));
+  it("pairs requested tables with a genuine model response", async () => {
+    const { fetch } = configure(JSON.stringify({ answer: "La tabla permite comparar las provincias registradas.", inScope: true }));
     const response = await handleAssistant(request({ question: "Haz una tabla por provincia de Panamá", period: "7d" }));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.presentation.views).toEqual(["table"]);
     expect(body.presentation.tableKind).toBe("provinces");
     expect(body.answer).not.toContain("temporalmente");
-    expect(fetch.mock.calls.some(([url]) => url.includes("nvidia"))).toBe(false);
+    expect(body.mode).toBe("ai");
+    expect(fetch.mock.calls.filter(([url]) => url.includes("nvidia"))).toHaveLength(1);
+  });
+
+  it("accepts grounded digits instead of rejecting valid provider responses", async () => {
+    const { r } = configure(JSON.stringify({ answer: "Se registraron 0 sismos en la selección.", inScope: true }));
+    const response = await handleAssistant(r);
+    expect(response.status).toBe(200);
+    expect((await response.json()).mode).toBe("ai");
+  });
+
+  it("repairs one invalid response and never substitutes catalog prose", async () => {
+    const { r, fetch } = configure(JSON.stringify({ answer: "El catálogo muestra la actividad registrada.", inScope: true }));
+    const original = fetch.getMockImplementation()!;
+    let attempts = 0;
+    fetch.mockImplementation(async (url, init) => {
+      if (url.includes("nvidia") && attempts++ === 0) return Response.json({ choices: [{ message: { content: "invalid JSON" } }] });
+      return original(url, init);
+    });
+    const response = await handleAssistant(r);
+    expect(response.status).toBe(200);
+    expect((await response.json()).mode).toBe("ai");
+    expect(attempts).toBe(2);
+  });
+
+  it("queries yesterday as a complete Panama calendar day", async () => {
+    configure(JSON.stringify({ answer: "La tabla muestra los registros de ayer.", inScope: true }));
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-24T16:00:00Z"));
+    const response = await handleAssistant(request({ question: "que ultimos sismos ubieron ayer?", period: "7d" }));
+    expect(response.status).toBe(200);
+    expect(getSeismicData).toHaveBeenCalledWith({ data: { start: "2026-11-23T05:00:00.000Z", end: "2026-11-24T05:00:00.000Z" } });
+    const body = await response.json();
+    expect(body.range).toEqual({ start: "2026-11-23T05:00:00.000Z", end: "2026-11-24T05:00:00.000Z" });
+    expect(body.presentation.views).toContain("table");
+    expect(body.answer).toContain("23 de noviembre de 2026");
+    expect(body.mode).toBe("ai");
   });
 
   it("rejects unstructured or off-topic provider output", async () => {
@@ -151,6 +186,9 @@ describe("Savia grounded response", () => {
     expect((await handleAssistant(inventedCount.r)).status).toBe(502);
     const unsafeSite = configure(JSON.stringify({ answer: "El terreno es seguro para construir.", inScope: true }));
     expect((await handleAssistant(unsafeSite.r)).status).toBe(502);
+    const fabricated = configure(JSON.stringify({ answer: "Se registraron 999999 sismos.", inScope: true }));
+    expect((await handleAssistant(fabricated.r)).status).toBe(502);
+    expect(fabricated.fetch.mock.calls.filter(([url]) => url.includes("nvidia"))).toHaveLength(2);
     const unrelated = configure(JSON.stringify({ answer: "Tema ajeno", inScope: false }));
     expect((await handleAssistant(unrelated.r)).status).toBe(422);
   });

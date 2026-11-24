@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { presentationFor, requestedPeriod } from "@/features/assistant/presentation";
+import { presentationFor, requestedPeriod, requestedRange } from "@/features/assistant/presentation";
 import { assistantInput } from "@/features/assistant/contract";
 import { readAssistant } from "@/features/assistant/stream";
 
@@ -38,5 +38,20 @@ describe("Savia requested outputs", () => {
     const reply = await readAssistant(new Response(stream, { headers: { "content-type": "text/event-stream" } }), phase => phases.push(phase));
     expect(phases).toEqual(["analyzing"]);
     expect(reply.answer).toBe("Panamá");
+  });
+});
+
+
+describe("Panama calendar ranges", () => {
+  const input = { question: "Sismos de ayer", period: "7d" as const, history: [] };
+  it("keeps yesterday in Panama even after UTC midnight", () => {
+    expect(requestedRange(input, Date.parse("2026-11-25T02:00:00Z"))).toMatchObject({ start: "2026-11-23T05:00:00.000Z", end: "2026-11-24T05:00:00.000Z" });
+  });
+  it("handles month and year boundaries", () => {
+    expect(requestedRange(input, Date.parse("2027-01-01T12:00:00Z"))).toMatchObject({ start: "2026-12-31T05:00:00.000Z", end: "2027-01-01T05:00:00.000Z" });
+  });
+  it("keeps today open and anteayer separate from ayer", () => {
+    expect(requestedRange({ ...input, question: "sismos de hoy" }, Date.parse("2026-11-24T16:00:00Z"))).toMatchObject({ start: "2026-11-24T05:00:00.000Z", end: null });
+    expect(requestedRange({ ...input, question: "sismos de anteayer" }, Date.parse("2026-11-24T16:00:00Z"))).toMatchObject({ start: "2026-11-22T05:00:00.000Z", end: "2026-11-23T05:00:00.000Z" });
   });
 });

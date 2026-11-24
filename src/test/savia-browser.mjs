@@ -89,6 +89,13 @@ try {
     assert.equal(await articles.count(), 1);
     assert.equal(await page.getByRole("progressbar").count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole("button", { name: "Limpiar chat", exact: true }).click();
+    await page.route("**/api/chat", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "NVIDIA no pudo atender la consulta. Inténtalo más tarde." }) }));
+    await page.getByLabel("Tu pregunta sobre Panamá", { exact: true }).fill("Sismos de ayer en Panamá");
+    await page.getByRole("button", { name: "Consultar a Savia", exact: true }).click();
+    await page.getByRole("alert").getByText("NVIDIA no pudo atender la consulta.", { exact: false }).waitFor();
+    assert.equal(await articles.count(), 0);
+    assert.equal(await page.getByLabel("Tu pregunta sobre Panamá", { exact: true }).inputValue(), "Sismos de ayer en Panamá");
     assert.deepEqual(errors, []);
     console.log(`Savia ${width}px: bienvenida, fases, tabla automática, mapa automático, gráfica, historial y texto seguro verificados`);
     await page.close();

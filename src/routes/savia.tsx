@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChartColumn, MapPinned, Send, ShieldCheck, Sparkles, Square, Table2, Trash2 } from "lucide-react";
 import { SaviaResult, saviaDate } from "@/components/assistant/SaviaResult";
@@ -7,9 +6,6 @@ import { SaviaThinking } from "@/components/assistant/SaviaThinking";
 import { SUGGESTIONS, isSeismicQuestion, type AssistantReply, type ChatPhase, type AssistantInput } from "@/features/assistant/contract";
 import { readAssistant } from "@/features/assistant/stream";
 import { requestedPeriod } from "@/features/assistant/presentation";
-import { catalogAnswer } from "@/features/assistant/catalog-answer";
-import { seismicQuery } from "@/features/seismic/queries";
-import { periodStart } from "@/features/seismic/periods";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/savia")({
@@ -24,7 +20,6 @@ type Turn = { id: number; question: string; reply: AssistantReply; seconds: numb
 const icons = [Sparkles, Table2, MapPinned, ChartColumn];
 
 function Savia() {
-  const queryClient = useQueryClient();
   const hydrated = useHydrated();
   const [question, setQuestion] = useState("");
   const [period, setPeriod] = useState<AssistantInput["period"]>("7d");
@@ -104,28 +99,11 @@ function Savia() {
         body: JSON.stringify(data), signal,
       });
       addReply(await readAssistant(response, next => { if (current()) setPhase(next); }));
-    } catch {
+    } catch (failure) {
       if (!current()) return;
-      if (deadline.aborted) {
-        setError("La consulta superó los 45 segundos. Intenta con un período más corto o pide una tabla para consultar los datos directamente.");
-      } else {
-        try {
-          setPhase("sources");
-          setNotice("La explicación no está disponible; recuperando los datos del catálogo.");
-          const catalog = await Promise.race([
-            queryClient.fetchQuery({ ...seismicQuery(periodStart(requestedPeriod(data))), retry: false, staleTime: 60_000 }),
-            new Promise<never>((_, reject) => {
-              if (signal.aborted) reject(signal.reason);
-              else signal.addEventListener("abort", () => reject(signal.reason), { once: true });
-            }),
-          ]);
-          if (current() && !deadline.aborted) addReply(catalogAnswer(catalog, submitted, history.at(-1)));
-        } catch {
-          if (current()) setError(deadline.aborted
-            ? "La consulta superó los 45 segundos. Puedes volver a intentarlo con un período más corto."
-            : "Las fuentes están temporalmente sin respuesta. Puedes consultar Fuentes y volver a intentarlo.");
-        }
-      }
+      setError(deadline.aborted
+        ? "La IA superó los 45 segundos de espera. Tu pregunta se conserva; vuelve a enviarla."
+        : failure instanceof Error ? failure.message : "No se pudo conectar con la IA. Vuelve a enviar tu pregunta.");
     } finally {
       if (active.current === controller) {
         active.current = null;
