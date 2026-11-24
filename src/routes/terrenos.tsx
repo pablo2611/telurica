@@ -66,7 +66,7 @@ function Terrenos() {
     const problem = pointProblem(next);
     if (problem) { setError(problem); return; }
     setError(""); setReading(null); setElevationState("loading"); setPoint(next); setLatitude(next.latitude.toFixed(6)); setLongitude(next.longitude.toFixed(6));
-    void navigate({ search: { lat: Number(next.latitude.toFixed(6)), lon: Number(next.longitude.toFixed(6)) }, replace: true });
+    void navigate({ search: { lat: Number(next.latitude.toFixed(6)), lon: Number(next.longitude.toFixed(6)) }, replace: true, resetScroll: false });
   }
   function locate() {
     if (!navigator.geolocation) { setError("Este navegador no ofrece ubicación. Puedes escribir las coordenadas."); return; }

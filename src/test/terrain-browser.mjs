@@ -24,6 +24,11 @@ try {
     await page.locator(".terrain-map-label").getByText("Relieve real · escala vertical 1×", { exact: true }).waitFor({ timeout: 25000 });
     await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
     await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-rural.png` });
+    await page.locator(".terrain-viewport").scrollIntoViewIfNeeded();
+    const scrollBefore = await page.evaluate(() => scrollY);
+    await page.locator(".terrain-canvas").click({ position: { x: 150, y: 230 } });
+    await page.waitForTimeout(500);
+    assert.ok(Math.abs((await page.evaluate(() => scrollY)) - scrollBefore) < 5, "Seleccionar un punto cambió el desplazamiento de la página");
     await page.getByLabel("Latitud", { exact: true }).fill("9.93");
     await page.getByLabel("Longitud", { exact: true }).fill("-84.09");
     await page.getByRole("button", { name: "Ubicar coordenadas", exact: true }).click();
