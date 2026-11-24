@@ -169,3 +169,12 @@ Savia y la opción «Zonas sísmicas» del Monitor muestran hexágonos fijos de 
 
 
 Las consultas «ayer», «anteayer» y «hoy» utilizan días de calendario de Panamá (UTC−5), con fin exclusivo, en lugar del período general seleccionado. Las respuestas con cifras presentes en el contexto ya no se rechazan por contener dígitos. Las frases numéricas y tablas Markdown del modelo se retiran de su explicación: las cifras, fechas y registros se presentan en componentes verificados. Se conserva la explicación cualitativa de IA; si falta, el segundo intento pide exclusivamente esa explicación con contexto cualitativo. Las afirmaciones de seguridad siguen rechazándose. Las preguntas y respuestas no se escriben en logs: solo se registra la categoría del fallo por intento.
+
+
+## Terrenos · exploración preliminar
+
+La nueva ruta `/terrenos` permite elegir un punto sobre el mapa, ingresar coordenadas, usar ubicación voluntaria o partir de referencias urbanas y rurales. Ofrece imágenes Esri, relieve 3D AWS / Mapzen con escala vertical 1× y edificios de OpenStreetMap vía OpenFreeMap desde zoom 15 (cobertura y alturas variables; no es fotogrametría).
+
+La ficha reúne elevación y pendiente regional aproximadas, sismos del catálogo en un radio de 5/25/50 km, referencia cortical más próxima, información ausente y próximos estudios. Permite descargar JSON, imprimir/PDF y preparar una pregunta para Savia; abrir la ficha no llama al modelo. El estado siempre es «Evaluación preliminar incompleta»: no clasifica terrenos como aptos/no aptos ni calcula probabilidades de seguridad.
+
+El DEM se lee en el navegador a zoom fijo 13, cinco muestras sobre 300 m, con fórmula Terrarium oficial, caché de 12 teselas y cancelación al cambiar de punto. La pendiente no depende del zoom o exageración visual. El catálogo comparte el pipeline existente, sin sondeo adicional periódico en esta ruta. Las coordenadas se reflejan en la URL para compartir y no se almacenan en una cuenta; los proveedores cartográficos reciben las solicitudes de teselas. Las capas geotécnicas, inundación, licuefacción y PGA local no disponibles se indican expresamente, con enlaces a IPDE y al modelo GEM. Los límites y fallas existentes son regionales, sin precisión de parcela.

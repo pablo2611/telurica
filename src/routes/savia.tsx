@@ -9,6 +9,7 @@ import { requestedPeriod } from "@/features/assistant/presentation";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/savia")({
+  validateSearch: (search: Record<string, unknown>): { question?: string } => typeof search["question"] === "string" ? { question: search["question"].slice(0, 12000) } : {},
   head: () => ({ meta: [
     { title: "Savia · Asistente sísmico de Telúrica" },
     { name: "description", content: "Pregunta por los sismos de Panamá y recibe explicaciones, tablas, gráficas y mapas con datos de las fuentes." },
@@ -21,7 +22,8 @@ const icons = [Sparkles, Table2, MapPinned, ChartColumn];
 
 function Savia() {
   const hydrated = useHydrated();
-  const [question, setQuestion] = useState("");
+  const suggested = Route.useSearch().question;
+  const [question, setQuestion] = useState(suggested ?? "");
   const [period, setPeriod] = useState<AssistantInput["period"]>("7d");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pendingQuestion, setPendingQuestion] = useState("");

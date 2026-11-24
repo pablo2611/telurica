@@ -41,11 +41,11 @@ interface Props {
   padding?: { top: number; bottom: number; left: number; right: number };
 }
 
-const PANAMA_BOUNDS: [[number, number], [number, number]] = [[-83.2, 6.9], [-77.1, 9.75]];
+export const PANAMA_BOUNDS: [[number, number], [number, number]] = [[-83.2, 6.9], [-77.1, 9.75]];
 const esri = (s: string) => [`https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`];
 const DEM_TILES = ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"];
 /** Estilo base: imágenes satelitales Esri + etiquetas, mapa oscuro OpenStreetMap y relieve AWS Terrain Tiles (terrarium). */
-const BASE_STYLE = {
+export const BASE_STYLE = {
   version: 8 as const,
   sources: {
     sat: { type: "raster" as const, tiles: esri("World_Imagery"), tileSize: 256, maxzoom: 19, attribution: "Imágenes © Esri, Maxar, Earthstar Geographics" },
