@@ -135,6 +135,10 @@ describe("Savia grounded response", () => {
   it("rejects unstructured or off-topic provider output", async () => {
     const malformed = configure(JSON.stringify({ answer: "Sin datos", inScope: true, tool: "execute" }));
     expect((await handleAssistant(malformed.r)).status).toBe(502);
+    const inventedCount = configure(JSON.stringify({ answer: "Hay 5 boletines y no hay peligro para Panamá.", inScope: true }));
+    expect((await handleAssistant(inventedCount.r)).status).toBe(502);
+    const unsafeSite = configure(JSON.stringify({ answer: "El terreno es seguro para construir.", inScope: true }));
+    expect((await handleAssistant(unsafeSite.r)).status).toBe(502);
     const unrelated = configure(JSON.stringify({ answer: "Tema ajeno", inScope: false }));
     expect((await handleAssistant(unrelated.r)).status).toBe(422);
   });

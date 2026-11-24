@@ -126,7 +126,7 @@ Colores: fondo `#0b1519`, acento `#5fd0d6`, epicentro `#f39a3c`. Tipografía de 
 
 ## Savia · asistente de datos
 
-La sección `/savia` ofrece consultas sobre el catálogo de Panamá con NVIDIA Nemotron 3.5 Lightning. Presenta cifras calculadas en servidor, distribución terrestre por provincia y un mapa de densidad de epicentros. Cada consulta es independiente y admite 24 horas, 7 o 30 días. El texto se muestra escapado por React.
+La sección `/savia` ofrece consultas sobre el catálogo de Panamá con NVIDIA Nemotron 3.5 Lightning. Presenta cifras calculadas en servidor, distribución terrestre por provincia y un mapa de densidad de epicentros. Cada consulta es independiente y admite 24 horas, 7 o 30 días. El texto se muestra escapado por React. Las cifras de la respuesta se añaden directamente desde el catálogo. La explicación cualitativa del modelo se rechaza si contiene dígitos o afirmaciones de alertas o seguridad detectadas por el validador. Esto reduce errores conocidos, sin garantizar exactitud de toda interpretación.
 
 ### Activación
 
