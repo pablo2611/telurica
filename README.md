@@ -123,3 +123,35 @@ Colores: fondo `#0b1519`, acento `#5fd0d6`, epicentro `#f39a3c`. Tipografía de 
 ## 📜 Licencia
 
 [MIT](LICENSE). Datos: USGS (dominio público), EMSC, NOAA. Límites: geoBoundaries (CC BY 4.0). Mapa base: © OpenStreetMap contributors / OpenFreeMap.
+
+## Savia · asistente de datos
+
+La sección `/savia` ofrece consultas sobre el catálogo de Panamá con NVIDIA Nemotron 3.5 Lightning. Presenta cifras calculadas en servidor, distribución terrestre por provincia y un mapa de densidad de epicentros. Cada consulta es independiente y admite 24 horas, 7 o 30 días. El texto se muestra escapado por React.
+
+### Activación
+
+Configura exclusivamente en el proyecto Telúrica del equipo autorizado de Vercel estas variables de servidor.
+
+| Variable | Uso |
+| --- | --- |
+| `NVIDIA_API_KEY` | Clave privada NVIDIA |
+| `UPSTASH_REDIS_REST_URL` | URL HTTPS del almacén persistente |
+| `UPSTASH_REDIS_REST_TOKEN` | Token privado Redis REST |
+| `SAVIA_HASH_SECRET` | Secreto aleatorio de al menos 32 caracteres para anonimizar IP |
+| `SAVIA_ENABLED` | `true` para activar después de configurar las protecciones |
+
+Savia permanece deshabilitada si falta una variable. El estado público solo comunica disponibilidad. No expone nombres de secretos ni sus valores. El servidor rechaza orígenes ajenos y cuerpos mayores de 4 KiB. La identidad de red procede del ingreso Vercel. Para desplegar en otro dominio se debe añadir explícitamente a la lista de orígenes permitidos.
+
+### Cuotas y consumo
+
+Las reservas Lua son atómicas entre instancias y despliegues del mismo almacén. Límites iniciales de 3 consultas/minuto y 10/día por IP anonimizada, 100/día y 1500/mes globales, 2 consultas concurrentes. Los días y meses de cuota usan UTC. Los intentos fallidos también consumen reserva. Un lease expirado se limpia automáticamente. Una incidencia de Redis cierra el chat antes de llamar a NVIDIA.
+
+Cada consulta admite 600 caracteres, un período acotado y una llamada NVIDIA con máximo 900 tokens de salida, razonamiento desactivado y timeout de 15 segundos. Las fuentes reutilizan la caché existente de Telúrica. Las respuestas iguales se reutilizan durante hasta 60 segundos, con fecha original visible. La bienvenida y las sugerencias son locales. La caché Redis de respuesta contiene la pregunta solo en forma HMAC y la respuesta durante un minuto. No se guarda historial de conversaciones en servidor. NVIDIA recibe la pregunta y un resumen del catálogo. No introducir datos personales.
+
+El mapa muestra hasta 300 eventos recientes. La estadística se calcula sobre todo el catálogo del período. Densidad observada no equivale a amenaza ni a aptitud para construir. Las decisiones sobre terrenos requieren microzonificación, estudios geotécnicos y profesionales. Los modelos pueden producir errores y los límites temáticos no garantizan eliminar toda inyección de prompts.
+
+Antes de habilitar tráfico público, configurar límites WAF sobre `/api/chat` en Vercel y verificar la cuota gratuita del almacén. Las cuotas de aplicación acotan llamadas de IA, pero el tráfico bloqueado, las funciones y el almacén pueden consumir recursos propios. La cuota gratuita NVIDIA es independiente de Vercel y su disponibilidad debe verificarse en la cuenta. No activar facturación automática ni cambiar de plan para habilitar este módulo.
+
+### Verificación
+
+CI compila, regenera las rutas, ejecuta pruebas, lint y typecheck con Node 22. Incluye pruebas de origen, tamaño real de cuerpo, cierre sin configuración, rechazo de temas ajenos, fallo de almacén y concurrencia del script Lua contra Redis efímero. Desactivar con `SAVIA_ENABLED=false` y volver a desplegar. Una clave compartida accidentalmente debe revocarse y reemplazarse.

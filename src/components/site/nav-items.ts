@@ -1,4 +1,4 @@
-import { Activity, Archive, BarChart3, BellRing, BookOpen, Compass, Layers3, Network } from "lucide-react";
+import { Activity, Archive, BarChart3, BellRing, Bot, BookOpen, Compass, Layers3, Network } from "lucide-react";
 
 export const NAV = [
   { to: "/resumen", label: "Resumen", icon: Compass, hint: "Estado actual y feed en vivo" },
@@ -7,6 +7,7 @@ export const NAV = [
   { to: "/historial", label: "Historial", icon: Archive, hint: "Archivo y exportación" },
   { to: "/analisis", label: "Análisis", icon: BarChart3, hint: "Estadísticas y gráficos" },
   { to: "/alertas", label: "Alertas", icon: BellRing, hint: "Reglas y notificaciones" },
+  { to: "/savia", label: "Savia IA", icon: Bot, hint: "Consulta los datos con inteligencia artificial" },
   { to: "/educacion", label: "Educación", icon: BookOpen, hint: "Qué hacer antes, durante y después" },
   { to: "/fuentes", label: "Fuentes", icon: Network, hint: "Estado de USGS, EMSC y NOAA" },
 ] as const;

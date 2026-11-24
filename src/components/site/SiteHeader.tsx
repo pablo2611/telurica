@@ -47,7 +47,7 @@ export function SiteHeader() {
           <ul className="flex items-center gap-0.5 rounded-full border border-hairline bg-surface/50 p-1">
             {NAV.map((n) => (
               <li key={n.to}>
-                <Link to={n.to} className="group relative block rounded-full px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary-foreground">
+                <Link to={n.to} className="group relative block rounded-full px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary-foreground">
                   {({ isActive }) => (
                     <>
                       {isActive && (
