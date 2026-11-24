@@ -124,34 +124,40 @@ Colores: fondo `#0b1519`, acento `#5fd0d6`, epicentro `#f39a3c`. Tipografía de 
 
 [MIT](LICENSE). Datos: USGS (dominio público), EMSC, NOAA. Límites: geoBoundaries (CC BY 4.0). Mapa base: © OpenStreetMap contributors / OpenFreeMap.
 
-## Savia · asistente de datos
+## Savia · conversación con datos
 
-La sección `/savia` ofrece consultas sobre el catálogo de Panamá con NVIDIA Nemotron 3.5 Lightning. Presenta cifras calculadas en servidor, distribución terrestre por provincia y un mapa de densidad de epicentros. Cada consulta es independiente y admite 24 horas, 7 o 30 días. El texto se muestra escapado por React. Las cifras de la respuesta se añaden directamente desde el catálogo. La explicación cualitativa del modelo se rechaza si contiene dígitos o afirmaciones de alertas o seguridad detectadas por el validador. Esto reduce errores conocidos, sin garantizar exactitud de toda interpretación.
+La sección `/savia` usa NVIDIA Nemotron 3.5 Lightning y el catálogo real de Telúrica. No tiene cuotas por usuario, IP, minuto, día o mes. Redis es una caché opcional de un minuto: su caída no bloquea la IA. La infraestructura y NVIDIA conservan sus límites propios de servicio.
 
-### Activación
+### Respuestas y visualizaciones
 
-Configura exclusivamente en el proyecto Telúrica del equipo autorizado de Vercel estas variables de servidor.
+La pregunta puede solicitar tablas, mapas o gráficas, y varias visualizaciones a la vez. Se incluyen automáticamente dentro de la respuesta y también pueden alternarse con sus botones, sin volver a llamar a NVIDIA. La tabla admite registros, provincias, actividad diaria y fuentes. Las gráficas muestran provincias o evolución temporal. Los mapas se encuadran en los epicentros de la región solicitada y permiten abrir una ficha en el Monitor.
+
+Savia detecta períodos escritos en la pregunta y permite 24 horas, 7, 30 o 90 días y un año. Filtra las provincias mencionadas antes de calcular los agregados. Los seguimientos pueden reutilizar la región de la pregunta anterior. La conversación se mantiene durante la sesión de la página, con las últimas cuatro preguntas como contexto acotado del modelo.
+
+La petición usa eventos SSE para comunicar las fases reales de consulta de fuentes, inferencia y preparación del resultado. Estas fases son estados de la aplicación. El razonamiento interno del modelo no se expone. El usuario puede detener la consulta. Si la IA o su validación fallan, se ofrece un resumen automático identificado como tal, con los mismos datos y visualizaciones.
+
+Las cifras se calculan mediante el pipeline sísmico y se muestran sin HTML generado por el modelo. Las explicaciones de IA pueden contener errores. El mapa representa densidad observada durante el período. Para decidir sobre un terreno se requieren estudios geotécnicos, microzonificación, normativa y profesionales.
+
+### Configuración privada
 
 | Variable | Uso |
 | --- | --- |
-| `NVIDIA_API_KEY` | Clave privada NVIDIA |
-| `UPSTASH_REDIS_REST_URL` o `KV_REST_API_URL` | URL HTTPS del almacén persistente |
-| `UPSTASH_REDIS_REST_TOKEN` o `KV_REST_API_TOKEN` | Token privado Redis REST |
-| `SAVIA_HASH_SECRET` | Secreto aleatorio de al menos 32 caracteres para anonimizar IP |
-| `SAVIA_ENABLED` | `true` para activar después de configurar las protecciones |
+| `NVIDIA_API_KEY` | Secreto NVIDIA en Vercel |
+| `SAVIA_ENABLED` | `true` para activar la inferencia |
+| `UPSTASH_REDIS_REST_URL` o `KV_REST_API_URL` | Caché Redis REST opcional |
+| `UPSTASH_REDIS_REST_TOKEN` o `KV_REST_API_TOKEN` | Token de la caché |
+| `SAVIA_HASH_SECRET` | Secreto opcional para claves HMAC de caché |
 
-Savia permanece deshabilitada si falta una variable. El estado público solo comunica disponibilidad de IA. Si NVIDIA o su cuota no permiten una respuesta, el navegador solicita el catálogo mediante la caché compartida existente y muestra un resumen determinista, identificado como automático, junto a su gráfica y mapa. Este resumen no interpreta libremente la pregunta ni predice riesgos. No expone nombres de secretos ni sus valores. El servidor rechaza orígenes ajenos y cuerpos mayores de 4 KiB. La identidad de red procede del ingreso Vercel. Para desplegar en otro dominio se debe añadir explícitamente a la lista de orígenes permitidos.
+Las preguntas se envían a NVIDIA con un resumen del catálogo. El servidor no guarda el historial de conversaciones. No introducir datos personales. Una clave compartida accidentalmente debe revocarse y reemplazarse.
 
-### Cuotas y consumo
+### Control de infraestructura y despliegues
 
-Las reservas Lua son atómicas entre instancias y despliegues del mismo almacén. Límites iniciales de 3 consultas/minuto y 10/día por IP anonimizada, 100/día y 1500/mes globales, 2 consultas concurrentes. Los días y meses de cuota usan UTC. Los intentos fallidos también consumen reserva. Un lease expirado se limpia automáticamente. Una incidencia de Redis cierra el chat antes de llamar a NVIDIA.
+El proyecto se publica únicamente en `solventeluzclaridadcam12-6345s-projects`, con Node 22 y plan Hobby. `vercel.json` desactiva los despliegues automáticos de Git. Las pruebas y compilaciones se ejecutan en GitHub, y la publicación se hace manualmente tras verificarlas. La concurrencia de CI cancela comprobaciones obsoletas de la misma rama.
 
-Cada consulta admite 600 caracteres, un período acotado y una llamada NVIDIA con máximo 900 tokens de salida, razonamiento desactivado y timeout de 15 segundos. Las fuentes reutilizan la caché existente de Telúrica. Las respuestas iguales se reutilizan durante hasta 60 segundos, con fecha original visible. La bienvenida y las sugerencias son locales. La caché Redis de respuesta contiene la pregunta solo en forma HMAC y la respuesta durante un minuto. No se guarda historial de conversaciones en servidor. NVIDIA recibe la pregunta y un resumen del catálogo. No introducir datos personales.
+Nitro configura un máximo de 60 segundos por ejecución de función. La llamada al modelo tiene un timeout de 25 segundos y una salida máxima de 1500 tokens. Son protecciones de recursos por operación, sin contadores que bloqueen futuras preguntas. La protección DDoS de Vercel permanece activa. Se desactiva la antigua regla específica de seis POST por minuto para Savia.
 
-El mapa muestra hasta 300 eventos recientes. La estadística se calcula sobre todo el catálogo del período. Densidad observada no equivale a amenaza ni a aptitud para construir. Las decisiones sobre terrenos requieren microzonificación, estudios geotécnicos y profesionales. Los modelos pueden producir errores y los límites temáticos no garantizan eliminar toda inyección de prompts.
-
-Antes de habilitar tráfico público, configurar límites WAF sobre `/api/chat` en Vercel y verificar la cuota gratuita del almacén. Las cuotas de aplicación acotan llamadas de IA, pero el tráfico bloqueado, las funciones y el almacén pueden consumir recursos propios. La cuota gratuita NVIDIA es independiente de Vercel y su disponibilidad debe verificarse en la cuenta. No activar facturación automática ni cambiar de plan para habilitar este módulo.
+La caché usa el plan gratuito de Upstash con autoUpgrade=false, prodPack=false y eviction=false. No se activa facturación automática ni se cambia el plan. Hobby tiene límites de infraestructura establecidos por Vercel y puede suspender recursos al agotarlos. Los límites de NVIDIA son independientes.
 
 ### Verificación
 
-CI compila, regenera las rutas, ejecuta pruebas, lint y typecheck con Node 22. Incluye pruebas de origen, tamaño real de cuerpo, cierre sin configuración, rechazo de temas ajenos, fallo de almacén y concurrencia del script Lua contra Redis efímero. Desactivar con `SAVIA_ENABLED=false` y volver a desplegar. Una clave compartida accidentalmente debe revocarse y reemplazarse.
+CI ejecuta compilación, regeneración de rutas, pruebas, lint y typecheck con Node 22. Comprueba seguridad de entrada, independencia de la caché, consultas repetidas sin cuotas, fases SSE y selección de tablas, mapas, regiones y períodos. Un workflow manual separado verifica el navegador a 390, 1024 y 1366 px en GitHub.

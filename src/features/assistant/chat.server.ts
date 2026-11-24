@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { assistantInput, isSeismicQuestion, type AssistantReply } from "./contract";
-import { ChatError, isConfigured, privateHash, redis, reserve } from "./budget.server";
+import { assistantInput, isSeismicQuestion, type AssistantReply, type AssistantInput, type ChatPhase } from "./contract";
+import { ChatError, isConfigured, privateHash, redis } from "./runtime.server";
 import { getSeismicData, getTsunamiBulletins } from "@/features/seismic/seismic.functions";
 import { summarize, byProvince, countByDay } from "@/features/seismic/stats";
 import { periodStart } from "@/features/seismic/periods";
+import { filterRegion, presentationFor, requestedPeriod } from "./presentation";
 import { FAULTS } from "@/data/tectonics";
 
 const ORIGINS = new Set(["https://telurica.vercel.app", "https://telurica-panama.vercel.app"]);
@@ -36,7 +37,7 @@ function json(body: unknown, status = 200) {
 
 async function readBody(request: Request) {
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new ChatError(415, "Envía una consulta JSON.");
-  if (Number(request.headers.get("content-length") ?? 0) > 4096) throw new ChatError(413, "La consulta es demasiado larga.");
+  if (Number(request.headers.get("content-length") ?? 0) > 65536) throw new ChatError(413, "La consulta es demasiado larga.");
   const reader = request.body?.getReader();
   if (!reader) throw new ChatError(400, "Escribe tu consulta.");
   let size = 0;
@@ -47,7 +48,7 @@ async function readBody(request: Request) {
       const chunk = await reader.read();
       if (chunk.done) break;
       size += chunk.value.byteLength;
-      if (size > 4096) {
+      if (size > 65536) {
         await reader.cancel();
         throw new ChatError(413, "La consulta es demasiado larga.");
       }
@@ -62,26 +63,20 @@ async function readBody(request: Request) {
 }
 
 export async function assistantStatus() {
-  return json({ enabled: isConfigured(), message: isConfigured() ? "Savia está disponible con cuotas de uso." : "Savia está en preparación. Puedes explorar el Monitor, Análisis y Fuentes." });
+  return json({ enabled: isConfigured(), message: isConfigured() ? "Savia está lista para conversar." : "Savia está en preparación. Puedes explorar el Monitor, Análisis y Fuentes." });
 }
 
-export async function handleAssistant(request: Request) {
-  let release: (() => Promise<void>) | undefined;
-  try {
-    const origin = request.headers.get("origin");
-    if (!origin || !ORIGINS.has(origin) || new URL(request.url).origin !== origin ||
-      request.headers.get("sec-fetch-site") === "cross-site") throw new ChatError(403, "Abre Savia desde Telúrica.");
-    const input = await readBody(request);
-    if (!isSeismicQuestion(input.question)) throw new ChatError(422, "Puedo ayudarte con sismos, fuentes y estadísticas de Panamá. Reformula tu pregunta dentro de ese tema.");
-    if (!isConfigured()) throw new ChatError(503, "Savia está en preparación. El chat se habilitará cuando estén listas las protecciones de consumo.");
-    release = await reserve(request);
-    const cacheKey = "telurica:savia:v2:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
-    const cached = await redis<string | null>(["GET", cacheKey]);
-    if (cached) return json(JSON.parse(cached));
-    const [catalog, tsunami] = await Promise.all([
-      getSeismicData({ data: { start: periodStart(input.period), end: null } }),
+async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: ChatPhase) => void): Promise<AssistantReply> {
+    const cacheKey = "telurica:savia:v4:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
+    const cached = await redis<string | null>(["GET", cacheKey]).catch(() => null);
+    if (cached) return JSON.parse(cached) as AssistantReply;
+    emit("sources");
+    const [original, tsunami] = await Promise.all([
+      getSeismicData({ data: { start: periodStart(requestedPeriod(input)), end: null } }),
       getTsunamiBulletins(),
     ]);
+    const presentation = presentationFor(input.question, input.history.at(-1));
+    const catalog = { ...original, events: filterRegion(original.events, presentation.regions) };
     if (!catalog.sources.some(source => ["usgs", "emsc"].includes(source.id) && ["operativa", "con_retraso"].includes(source.state))) {
       throw new ChatError(503, "Las fuentes sísmicas están temporalmente desconectadas. Consulta Fuentes e inténtalo después.");
     }
@@ -98,20 +93,21 @@ export async function handleAssistant(request: Request) {
       tsunami: { state: tsunami.source.state, note: "Los avisos se consultan directamente en NOAA y SINAPROC. No inferir seguridad ni convertir boletines globales en avisos para Panamá." },
       faults: FAULTS.map(f => ({ name: f.n, type: f.t })),
     };
+    emit("analyzing");
     const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env["NVIDIA_API_KEY"]}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "nvidia/nemotron-3.5-lightning-30b-a3b",
-        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify({ question: input.question, authoritativeData: context }) }],
-        max_tokens: 900, temperature: 0.2, stream: false,
+        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify({ question: input.question, recentQuestions: input.history, requestedPresentation: presentation, authoritativeData: context }) }],
+        max_tokens: 1500, temperature: 0.2, stream: false,
         chat_template_kwargs: { enable_thinking: false },
         response_format: { type: "json_schema", json_schema: { name: "savia_answer", strict: true, schema: {
           type: "object", additionalProperties: false, required: ["answer", "inScope"],
           properties: { answer: { type: "string" }, inScope: { type: "boolean" } },
         } } },
       }),
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)]),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(25000)]),
     });
     if (!response.ok) throw new ChatError(response.status === 429 ? 429 : 503, "NVIDIA no pudo atender la consulta. Inténtalo más tarde.");
     const model = await response.json() as { choices?: { message?: { content?: string } }[] };
@@ -120,20 +116,53 @@ export async function handleAssistant(request: Request) {
     const output = outputSchema.safeParse(JSON.parse(content));
     if (!output.success) throw new ChatError(502, "La respuesta no pasó la validación. Inténtalo más tarde.");
     if (!output.data.inScope) throw new ChatError(422, "Savia responde sobre fuentes y actividad sísmica de Panamá. Prueba una pregunta sugerida.");
+    emit("presenting");
     const reply: AssistantReply = {
       answer: [
         `Catálogo del período: ${summary.total} registros, ${summary.panama} terrestres y ${summary.maritima} marítimos.`,
         summary.maxMag == null ? "Magnitud máxima no informada." : `Magnitud máxima informada: ${summary.maxMag.toFixed(1)}.`,
         output.data.answer,
       ].join("\n\n"), mode: "ai", generatedAt: catalog.generatedAt, range: catalog.range,
-      total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
+      presentation, total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
       events: catalog.events.slice(0, 300), sources: context.sources,
       mapTruncated: catalog.events.length > 300,
     };
     await redis(["SET", cacheKey, JSON.stringify(reply), "EX", 60]).catch(() => undefined);
-    return json(reply);
+    return reply;
+}
+
+function safeError(error: unknown) {
+  return error instanceof ChatError ? error.message : "Savia no pudo completar esta consulta. Inténtalo más tarde.";
+}
+
+export async function handleAssistant(request: Request) {
+  try {
+    const origin = request.headers.get("origin");
+    if (!origin || !ORIGINS.has(origin) || new URL(request.url).origin !== origin ||
+      request.headers.get("sec-fetch-site") === "cross-site") throw new ChatError(403, "Abre Savia desde Telúrica.");
+    const input = await readBody(request);
+    if (!isSeismicQuestion([...input.history, input.question].join(" "))) throw new ChatError(422, "Puedo ayudarte con sismos, fuentes y estadísticas de Panamá. Prueba una pregunta sobre esos temas.");
+    if (!isConfigured()) throw new ChatError(503, "El servicio de IA está temporalmente desconectado.");
+    if (!request.headers.get("accept")?.includes("text/event-stream")) return json(await answer(input, request.signal, () => {}));
+    const abort = new AbortController();
+    let closed = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const send = (event: unknown) => {
+          if (!closed) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+        };
+        void answer(input, AbortSignal.any([request.signal, abort.signal]), phase => send({ type: "phase", phase }))
+          .then(reply => send({ type: "result", reply }))
+          .catch(error => send({ type: "error", message: safeError(error) }))
+          .finally(() => { if (!closed) { closed = true; controller.close(); } });
+      },
+      cancel() { closed = true; abort.abort(); },
+    });
+    return new Response(stream, { headers: {
+      "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff", "X-Accel-Buffering": "no",
+    } });
   } catch (error) {
-    if (error instanceof ChatError) return json({ error: error.message }, error.status);
-    return json({ error: "Savia no pudo completar esta consulta. Inténtalo más tarde." }, 503);
-  } finally { await release?.(); }
+    return json({ error: safeError(error) }, error instanceof ChatError ? error.status : 503);
+  }
 }

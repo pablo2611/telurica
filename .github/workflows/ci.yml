@@ -5,17 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,8 +21,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
-        env:
-          SAVIA_TEST_REDIS_CONTAINER: ${{ job.services.redis.id }}
       - name: Lint
         run: npm run lint
       - name: Typecheck

@@ -27,6 +27,7 @@ interface Props {
   focusedFault?: Fault;
   focusedPlate?: Plate;
   epicenter?: [number, number];
+  eventBounds?: [[number, number], [number, number]] | undefined;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   layers?: MapLayers;
@@ -98,7 +99,7 @@ function toColumns(events: SeismicEvent[]) {
   };
 }
 
-export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
+export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, eventBounds, selectedId, onSelect, layers = { panama: true, maritima: true, provinces: true }, view, interactive = true, className, padding }: Props) {
   const v: MapView = { basemap: "satellite", terrain: false, faults: true, columns: false, heat: false, ...view };
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
@@ -307,6 +308,12 @@ export function SeismicMap({ events, focusedFault, focusedPlate, epicenter, sele
       map.jumpTo({ center: focusedPlate.at, zoom: 6.5 });
     }
   }, [ready, focusedFault, focusedPlate]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !eventBounds) return;
+    map.fitBounds(eventBounds, { padding: 32, maxZoom: 9, duration: 0 });
+  }, [ready, eventBounds]);
 
   const selectedEvent = events.find((event) => event.id === selectedId);
   const selectedLongitude = selectedEvent?.primary.longitude;

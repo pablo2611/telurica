@@ -14,7 +14,7 @@ export default defineConfig({
     tailwindcss(),
     // El servidor usa src/server.ts como envoltorio con manejo de errores SSR.
     tanstackStart({ server: { entry: "server" } }),
-    nitro(),
+    nitro({ vercel: { functions: { maxDuration: 60 } } }),
     viteReact(),
   ],
   resolve: { dedupe: ["react", "react-dom", "@tanstack/react-router", "@tanstack/react-query"] },

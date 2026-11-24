@@ -226,3 +226,118 @@
 }
 
 @utility font-brand { font-family: var(--font-brand); font-weight: 600; letter-spacing: -0.035em; }
+
+/* Savia */
+.savia-page { max-width: 1024px; margin-inline: auto; padding: 26px 24px 110px; }
+.savia-topline { display: flex; align-items: center; justify-content: space-between; gap: 18px; font-size: 12px; color: var(--muted-foreground); }
+.savia-topline > span, .savia-topline a { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; }
+.savia-topline a { color: var(--foreground); }
+.savia-signal { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 15px color-mix(in srgb, var(--primary) 35%, transparent); }
+.savia-intro { max-width: 790px; margin: 24px auto 30px; text-align: center; }
+.savia-orb { position: relative; display: grid; place-items: center; width: 72px; height: 72px; margin: 0 auto 24px; border-radius: 24px; border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); color: var(--primary); background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--primary) 17%, transparent), var(--background) 80%); box-shadow: 0 10px 50px -22px var(--primary), inset 0 1px 0 color-mix(in srgb, white 12%, transparent); }
+.savia-orb > svg { width: 30px; height: 30px; }
+.savia-orb > span { position: absolute; inset: -8px; border-radius: 29px; border: 1px solid color-mix(in srgb, var(--primary) 9%, transparent); }
+.savia-eyebrow { color: var(--primary); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.savia-intro h1 { margin-top: 12px; font-family: var(--font-display); font-size: clamp(38px, 5.5vw, 60px); letter-spacing: -.035em; line-height: 1.12; }
+.savia-intro > p:last-of-type { max-width: 480px; margin: 16px auto 0; color: var(--muted-foreground); font-size: 16px; line-height: 1.7; }
+.savia-intro > p:last-of-type span { color: var(--foreground); }
+.savia-intro-compact { margin: 20px auto 24px; }
+.savia-intro-compact .savia-orb, .savia-intro-compact .savia-eyebrow { display: none; }
+.savia-intro-compact h1 { font-size: 32px; }
+.savia-intro-compact > p:last-of-type { display: none; }
+.savia-starters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 30px; }
+.savia-starters button { display: flex; align-items: flex-start; gap: 14px; min-height: 92px; padding: 18px; text-align: start; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--surface) 75%, transparent); color: var(--foreground); font-size: 13px; line-height: 1.65; transition: border-color .18s, background-color .18s; }
+.savia-starters button > svg { flex-shrink: 0; width: 20px; height: 20px; margin-top: 3px; color: var(--primary); }
+.savia-starters button:disabled { opacity: .6; }
+.savia-composer { max-width: 790px; margin: 22px auto 0; padding: 14px 16px 12px; border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border)); border-radius: 20px; background: var(--surface); box-shadow: 0 8px 35px -20px color-mix(in srgb, var(--primary) 20%, black); }
+.savia-composer:focus-within { border-color: var(--primary); }
+.savia-composer textarea { display: block; width: 100%; min-height: 72px; max-height: 260px; padding: 8px; resize: vertical; background: transparent; color: var(--foreground); font: inherit; font-size: 16px; line-height: 1.65; border: 0; border-radius: 6px; }
+.savia-composer textarea:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.savia-composer textarea::placeholder { color: var(--muted-foreground); }
+.savia-composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; }
+.savia-period { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.savia-period label { font-size: 11px; color: var(--muted-foreground); }
+.savia-period select { min-height: 44px; max-width: 175px; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--foreground); padding: 6px 8px; font-size: 13px; }
+.savia-submit { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 10px 16px; border-radius: 12px; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.savia-submit:disabled { opacity: .55; }
+.savia-stop { background: var(--background); color: var(--foreground); border: 1px solid var(--border); }
+.savia-help, .savia-disclaimer { max-width: 750px; margin: 12px auto 0; text-align: center; font-size: 11px; line-height: 1.8; color: var(--muted-foreground); }
+.savia-disclaimer { max-width: 670px; margin-top: 20px; }
+.savia-disclaimer a { text-decoration: underline; text-underline-offset: 3px; }
+.savia-conversation { max-width: 870px; margin-inline: auto; }
+.savia-turn { position: relative; padding-top: 20px; margin-top: 20px; }
+.savia-result-anchor { position: absolute; top: -75px; }
+.savia-user-message { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+.savia-user-message h2 { max-width: min(86%, 680px); border: 1px solid var(--border); border-radius: 18px 18px 4px 18px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); padding: 14px 18px; font-size: 14px; font-weight: 500; line-height: 1.7; overflow-wrap: anywhere; white-space: pre-wrap; }
+.savia-assistant-message { padding: 0 4px 28px; border-bottom: 1px solid var(--border); }
+.savia-author { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; }
+.savia-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent); }
+.savia-avatar svg { width: 17px; height: 17px; }
+.savia-author > span:last-child { color: var(--muted-foreground); font-size: 11px; }
+.savia-prose { max-width: 76ch; font-size: 14px; line-height: 1.95; overflow-wrap: anywhere; }
+.savia-prose p { margin: 0 0 15px; white-space: pre-wrap; }
+.savia-result { margin: 24px 0 12px; border: 1px solid var(--border); border-radius: 16px; padding: 18px; background: var(--surface); }
+.savia-result-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; color: var(--muted-foreground); font-size: 11px; }
+.savia-result-summary strong { margin-right: 5px; font-family: var(--font-mono); font-size: 21px; color: var(--foreground); font-weight: 500; }
+.savia-scope { color: var(--primary); }
+.savia-result-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.savia-result-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; color: var(--muted-foreground); font-size: 12px; }
+.savia-result-actions button[aria-pressed=true] { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 45%, transparent); background: color-mix(in srgb, var(--primary) 8%, transparent); }
+.savia-table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 12px; margin-block: 14px; }
+.savia-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.savia-table caption { padding: 13px; text-align: start; font-size: 12px; color: var(--primary); border-bottom: 1px solid var(--border); }
+.savia-table th, .savia-table td { padding: 12px 14px; text-align: start; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.savia-table th { font-weight: 500; }
+.savia-table thead { color: var(--muted-foreground); background: color-mix(in srgb, var(--primary) 4%, transparent); }
+.savia-table td { font-family: var(--font-mono); font-size: 11px; }
+.savia-table tr:last-child > * { border-bottom: 0; }
+.savia-chart { margin-top: 16px; padding-top: 10px; }
+.savia-chart h4 { font-size: 13px; font-weight: 500; }
+.savia-map { margin-top: 16px; }
+.savia-footnote { font-size: 11px; color: var(--muted-foreground); line-height: 1.8; margin-top: 10px; overflow-wrap: anywhere; }
+.savia-text-button { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
+.savia-sources { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; line-height: 1.8; color: var(--muted-foreground); }
+.savia-sources summary { cursor: pointer; min-height: 36px; padding-block: 8px; }
+.savia-sources ul { display: grid; gap: 8px; margin-top: 10px; }
+.savia-sources li { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.savia-sources a { color: var(--foreground); text-decoration: underline; text-underline-offset: 3px; }
+.savia-thinking { display: flex; align-items: flex-start; gap: 16px; max-width: 470px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.savia-thinking-title { color: var(--primary); font-size: 14px; font-weight: 500; }
+.savia-thinking-detail { margin-top: 5px; color: var(--muted-foreground); font-size: 12px; line-height: 1.7; }
+.savia-steps { display: flex; gap: 5px; margin-top: 14px; }
+.savia-steps span { width: 35px; height: 3px; border-radius: 4px; background: var(--border); }
+.savia-steps span[data-state=done], .savia-steps span[data-state=active] { background: var(--primary); }
+.savia-progress { flex-shrink: 0; appearance: none; display: block; width: 26px; height: 26px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; background: transparent; }
+.savia-progress::-webkit-progress-bar, .savia-progress::-webkit-progress-value, .savia-progress::-moz-progress-bar { display: none; background: transparent; }
+.savia-form-error { margin-top: 12px; color: var(--foreground); border-left: 2px solid var(--destructive); padding-left: 12px; font-size: 12px; line-height: 1.7; }
+.savia-page button:focus-visible, .savia-page a:focus-visible, .savia-page select:focus-visible, .savia-table-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .savia-starters button:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--surface)); }
+  .savia-result-actions button:hover { color: var(--foreground); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .savia-orb { animation: savia-orb-enter 600ms cubic-bezier(.16, 1, .3, 1) both; }
+  .savia-turn, .savia-result { animation: savia-result-enter 240ms cubic-bezier(.16, 1, .3, 1) both; }
+  .savia-progress { animation: savia-spin 1.2s linear infinite; }
+  .savia-steps span[data-state=active] { animation: savia-breathe 1.6s ease-in-out infinite; }
+}
+@media (forced-colors: active) { .savia-progress { border-color: GrayText; border-top-color: CanvasText; } }
+@keyframes savia-spin { to { transform: rotate(360deg); } }
+@keyframes savia-breathe { 50% { opacity: .3; } }
+@keyframes savia-result-enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes savia-orb-enter { from { opacity: 0; transform: translateY(9px) scale(.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (max-width: 580px) {
+  .savia-page { padding: 12px 16px 100px; }
+  .savia-topline { font-size: 11px; gap: 8px; }
+  .savia-intro { margin-top: 22px; }
+  .savia-intro > p:last-of-type { font-size: 14px; }
+  .savia-starters { gap: 8px; margin-top: 24px; }
+  .savia-starters button { min-height: 132px; padding: 14px; flex-direction: column; gap: 8px; font-size: 12px; }
+  .savia-composer { padding: 12px; border-radius: 16px; }
+  .savia-composer-bottom { align-items: flex-end; gap: 8px; }
+  .savia-period { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .savia-period select { max-width: 150px; font-size: 12px; }
+  .savia-submit { font-size: 12px; padding-inline: 12px; }
+  .savia-result { padding: 12px; }
+  .savia-user-message h2 { max-width: 94%; font-size: 13px; }
+}
