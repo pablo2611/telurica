@@ -36,6 +36,14 @@ try {
     await page.locator(".terrain-canvas").click({ position: { x: 150, y: 230 } });
     await page.waitForTimeout(500);
     assert.ok(Math.abs((await page.evaluate(() => scrollY)) - scrollBefore) < 5, "Seleccionar un punto cambió el desplazamiento de la página");
+    if (width === 1366) {
+      await page.locator(".terrain-camera-controls summary").click();
+      await setRange(page, "#terrain-camera-zoom", 20);
+      await setRange(page, "#terrain-camera-pitch", 65);
+      await page.locator(".terrain-camera-controls summary").click();
+      await page.locator('.terrain-viewport[data-map-settled="true"]').waitFor({ timeout: 45000 });
+      await page.locator(".terrain-viewport").screenshot({ path: `test-results/terrain/${width}-rural-close.png` });
+    }
     await page.getByLabel("Latitud", { exact: true }).fill("9.93");
     await page.getByLabel("Longitud", { exact: true }).fill("-84.09");
     await page.getByRole("button", { name: "Ubicar coordenadas", exact: true }).click();
