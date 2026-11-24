@@ -41,7 +41,16 @@ export function TerrainExplorer({ point, events, onPick, satellite, terrain, bui
           sat: { ...BASE_STYLE.sources.sat, maxzoom: 16 }, labels: { ...BASE_STYLE.sources.labels, maxzoom: 16 } } };
         instance = new ml.Map({ container: host.current, style: style as never, bounds: PANAMA_BOUNDS,
           fitBoundsOptions: { padding: 24 }, maxBounds: [[-84.2, 5.8], [-76.2, 11]], maxZoom: 20, maxPitch: 80, dragRotate: true, pitchWithRotate: true, touchZoomRotate: true, touchPitch: true,
-          attributionControl: { compact: true }, cooperativeGestures: true });
+          attributionControl: { compact: true }, cooperativeGestures: true,
+          locale: {
+            "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
+            "NavigationControl.ResetBearing": "Arrastra para girar; pulsa para orientar al norte",
+            "FullscreenControl.Enter": "Pantalla completa", "FullscreenControl.Exit": "Salir de pantalla completa",
+            "AttributionControl.ToggleAttribution": "Mostrar fuentes del mapa", "Map.Title": "Mapa del terreno",
+            "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl y la rueda para acercar el mapa",
+            "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ y la rueda para acercar el mapa",
+            "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa",
+          } });
         map.current = instance;
         instance.on("moveend", () => { if (!disposed && instance) setCamera({ bearing: Math.round((instance.getBearing() % 360 + 360) % 360), pitch: Math.round(instance.getPitch()), zoom: Number(instance.getZoom().toFixed(1)) }); });
         instance.on("movestart", () => { if (!disposed) setSettled(false); });
