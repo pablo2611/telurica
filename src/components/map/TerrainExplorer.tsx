@@ -130,6 +130,8 @@ export function TerrainExplorer({ point, events, onPick, satellite, terrain, bui
       <input id="terrain-camera-bearing" type="range" min={0} max={360} step={1} value={camera.bearing} onChange={event => map.current?.jumpTo({ bearing: Number(event.target.value) })} />
       <label htmlFor="terrain-camera-pitch">Inclinación · {camera.pitch}°</label>
       <input id="terrain-camera-pitch" type="range" min={0} max={80} step={1} value={camera.pitch} onChange={event => map.current?.jumpTo({ pitch: Number(event.target.value) })} />
+      <label htmlFor="terrain-camera-zoom">Acercamiento · {camera.zoom}</label>
+      <input id="terrain-camera-zoom" type="range" min={6} max={20} step={0.5} value={camera.zoom} onChange={event => map.current?.jumpTo({ zoom: Number(event.target.value) })} />
       <p>PC: arrastra con botón derecho para girar e inclinar. Móvil: gira con dos dedos y deslízalos juntos para inclinar.</p>
       {satellite && <p>Al acercarte mucho se amplía la última imagen disponible; no añade detalle nuevo.</p>}
     </details>}

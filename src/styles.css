@@ -517,3 +517,5 @@
 .terrain-camera-controls p { font-size: 10px; line-height: 1.7; color: var(--muted-foreground); margin-block: 6px 12px; }
 .terrain-camera-controls input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .terrain-viewport:fullscreen { width: 100vw; height: 100dvh; border-radius: 0; }
+
+.terrain-camera-controls { max-height: calc(100% - 70px); overflow-y: auto; overscroll-behavior: contain; }
