@@ -506,3 +506,14 @@
 .terrain-context > div { display: grid; gap: 7px; min-width: 0; }
 
 .terrain-tile-status { position: absolute; right: 12px; bottom: 36px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--muted-foreground); background: var(--background); font-size: 10px; pointer-events: none; }
+
+.terrain-camera-controls { position: absolute; left: 12px; bottom: 38px; z-index: 3; width: min(300px, calc(100% - 72px)); border: 1px solid var(--border); border-radius: 12px; background: var(--background); color: var(--foreground); padding: 0 12px; }
+.terrain-camera-controls summary { cursor: pointer; min-height: 44px; padding-block: 12px; font-size: 12px; }
+.terrain-camera-controls summary span { display: block; font-family: var(--font-mono); font-size: 10px; margin-top: 5px; color: var(--muted-foreground); }
+.terrain-camera-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-block: 4px 12px; }
+.terrain-camera-buttons button { min-height: 44px; border: 1px solid var(--border); border-radius: 8px; color: var(--primary); font-size: 11px; padding: 7px; }
+.terrain-camera-controls label { display: block; font-size: 11px; color: var(--muted-foreground); }
+.terrain-camera-controls input { width: 100%; height: 32px; accent-color: var(--primary); }
+.terrain-camera-controls p { font-size: 10px; line-height: 1.7; color: var(--muted-foreground); margin-block: 6px 12px; }
+.terrain-camera-controls input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.terrain-viewport:fullscreen { width: 100vw; height: 100dvh; border-radius: 0; }
