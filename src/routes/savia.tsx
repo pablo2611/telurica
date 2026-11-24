@@ -137,7 +137,7 @@ function Savia() {
       <form action="/api/chat" method="post" onSubmit={submit} aria-label="Pregunta a Savia" className="savia-composer">
         <label htmlFor="savia-question" className="sr-only">Tu pregunta sobre Panamá</label>
         <textarea ref={input} id="savia-question" name="question" value={question} onChange={event => { setQuestion(event.target.value); setError(""); }}
-          required minLength={8} maxLength={12000} rows={2} disabled={pending || !hydrated}
+          required minLength={1} maxLength={12000} rows={2} disabled={pending || !hydrated}
           aria-describedby="savia-help" aria-invalid={!!error}
           onKeyDown={event => {
             if (event.key === "Enter" && !event.shiftKey) {

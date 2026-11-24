@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { presentationFor, requestedPeriod } from "@/features/assistant/presentation";
+import { assistantInput } from "@/features/assistant/contract";
 import { readAssistant } from "@/features/assistant/stream";
 
 describe("Savia requested outputs", () => {
+  it("accepts short natural requests such as tabla and mapa", () => {
+    expect(assistantInput.safeParse({ question: "tabla", period: "7d" }).success).toBe(true);
+    expect(presentationFor("tabla").views).toEqual(["table"]);
+    expect(presentationFor("mapa").views).toEqual(["map"]);
+  });
   it("selects a real table instead of a textual description", () => {
     expect(presentationFor("Haz una tabla comparando las provincias")).toMatchObject({ views: ["table"], tableKind: "provinces" });
     expect(presentationFor("Tabla con los últimos sismos y su magnitud")).toMatchObject({ views: ["table"], tableKind: "events" });

@@ -3,7 +3,7 @@ import type { PeriodId } from "@/features/seismic/periods";
 import type { SeismicEvent } from "@/features/seismic/types";
 
 export const assistantInput = z.object({
-  question: z.string().trim().min(8).max(12000),
+  question: z.string().trim().min(1).max(12000),
   period: z.enum(["24h", "7d", "30d", "90d", "365d"]),
   history: z.array(z.string().max(3000)).max(4).default([]),
 }).strict();
