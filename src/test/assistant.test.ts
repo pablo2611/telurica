@@ -133,6 +133,17 @@ describe("Savia grounded response", () => {
     expect(stream).not.toContain("test-secret-never-send-to-browser");
   });
 
+  it("renders a requested table directly from sources without unnecessary inference", async () => {
+    const { fetch } = configure(JSON.stringify({ answer: "No se debe llamar al modelo.", inScope: true }));
+    const response = await handleAssistant(request({ question: "Haz una tabla por provincia de Panamá", period: "7d" }));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.presentation.views).toEqual(["table"]);
+    expect(body.presentation.tableKind).toBe("provinces");
+    expect(body.answer).not.toContain("temporalmente");
+    expect(fetch.mock.calls.some(([url]) => url.includes("nvidia"))).toBe(false);
+  });
+
   it("rejects unstructured or off-topic provider output", async () => {
     const malformed = configure(JSON.stringify({ answer: "Sin datos", inScope: true, tool: "execute" }));
     expect((await handleAssistant(malformed.r)).status).toBe(502);

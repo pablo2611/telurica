@@ -130,7 +130,7 @@ La sección `/savia` usa NVIDIA Nemotron 3.5 Lightning y el catálogo real de Te
 
 ### Respuestas y visualizaciones
 
-La pregunta puede solicitar tablas, mapas o gráficas, y varias visualizaciones a la vez. Se incluyen automáticamente dentro de la respuesta y también pueden alternarse con sus botones, sin volver a llamar a NVIDIA. La tabla admite registros, provincias, actividad diaria y fuentes. Las gráficas muestran provincias o evolución temporal. Los mapas se encuadran en los epicentros de la región solicitada y permiten abrir una ficha en el Monitor.
+La pregunta puede solicitar tablas, mapas o gráficas, y varias visualizaciones a la vez. Las solicitudes de solo visualización se resuelven directamente con el catálogo, sin consumir tokens del modelo. Si se pide explicación o análisis, se consulta NVIDIA. Se incluyen automáticamente dentro de la respuesta y también pueden alternarse con sus botones, sin volver a llamar a NVIDIA. La tabla admite registros, provincias, actividad diaria y fuentes. Las gráficas muestran provincias o evolución temporal. Los mapas se encuadran en los epicentros de la región solicitada y permiten abrir una ficha en el Monitor.
 
 Savia detecta períodos escritos en la pregunta y permite 24 horas, 7, 30 o 90 días y un año. Filtra las provincias mencionadas antes de calcular los agregados. Los seguimientos pueden reutilizar la región de la pregunta anterior. La conversación se mantiene durante la sesión de la página, con las últimas cuatro preguntas como contexto acotado del modelo.
 

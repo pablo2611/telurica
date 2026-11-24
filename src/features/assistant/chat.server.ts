@@ -67,7 +67,7 @@ export async function assistantStatus() {
 }
 
 async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: ChatPhase) => void): Promise<AssistantReply> {
-    const cacheKey = "telurica:savia:v4:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
+    const cacheKey = "telurica:savia:v5:answer:" + privateHash(JSON.stringify(input) + Math.floor(Date.now() / 60000));
     const cached = await redis<string | null>(["GET", cacheKey]).catch(() => null);
     if (cached) return JSON.parse(cached) as AssistantReply;
     emit("sources");
@@ -83,6 +83,24 @@ async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: 
     const summary = summarize(catalog.events);
     const provinces = byProvince(catalog.events);
     const days = countByDay(catalog.events, catalog.range.start, catalog.range.end);
+    const resultData = {
+      presentation, generatedAt: catalog.generatedAt, range: catalog.range,
+      total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
+      events: catalog.events.slice(0, 300),
+      sources: [...catalog.sources, tsunami.source].map(({ name, url, state }) => ({ name, url, state })),
+      mapTruncated: catalog.events.length > 300,
+    };
+    const needsExplanation = /explica|analiza|interpreta|por qu[eé]|significa|recomienda|conclusi[oó]n|eval[uú]a/i.test(input.question);
+    if (presentation.views.length > 0 && !needsExplanation) {
+      emit("presenting");
+      const names = presentation.views.map(view => view === "table" ? "la tabla" : view === "map" ? "el mapa" : "la gráfica");
+      const reply: AssistantReply = {
+        ...resultData, mode: "catalog",
+        answer: `Aquí tienes ${names.join(" y ")}${presentation.regions.length ? " de " + presentation.regions.join(" y ") : " de Panamá"}, calculado a partir de los registros del período seleccionado.`,
+      };
+      await redis(["SET", cacheKey, JSON.stringify(reply), "EX", 60]).catch(() => undefined);
+      return reply;
+    }
     const context = {
       generatedAt: catalog.generatedAt, range: catalog.range,
       summary: { total: summary.total, terrestrial: summary.panama, maritime: summary.maritima, maxMagnitude: summary.maxMag, meanMagnitude: summary.meanMag },
@@ -118,14 +136,12 @@ async function answer(input: AssistantInput, signal: AbortSignal, emit: (phase: 
     if (!output.data.inScope) throw new ChatError(422, "Savia responde sobre fuentes y actividad sísmica de Panamá. Prueba una pregunta sugerida.");
     emit("presenting");
     const reply: AssistantReply = {
+      ...resultData,
       answer: [
         `Catálogo del período: ${summary.total} registros, ${summary.panama} terrestres y ${summary.maritima} marítimos.`,
         summary.maxMag == null ? "Magnitud máxima no informada." : `Magnitud máxima informada: ${summary.maxMag.toFixed(1)}.`,
         output.data.answer,
-      ].join("\n\n"), mode: "ai", generatedAt: catalog.generatedAt, range: catalog.range,
-      presentation, total: summary.total, maxMagnitude: summary.maxMag, provinces, days,
-      events: catalog.events.slice(0, 300), sources: context.sources,
-      mapTruncated: catalog.events.length > 300,
+      ].join("\n\n"), mode: "ai",
     };
     await redis(["SET", cacheKey, JSON.stringify(reply), "EX", 60]).catch(() => undefined);
     return reply;

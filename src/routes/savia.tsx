@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChartColumn, MapPinned, Send, ShieldCheck, Sparkles, Square, Table2 } from "lucide-react";
 import { SaviaResult, saviaDate } from "@/components/assistant/SaviaResult";
 import { SaviaThinking } from "@/components/assistant/SaviaThinking";
@@ -37,7 +37,12 @@ function Savia() {
   const active = useRef<AbortController | null>(null);
   const resultAnchor = useRef<HTMLDivElement>(null);
   const sequence = useRef(0);
+  const pendingAnchor = useRef<HTMLDivElement>(null);
   const pending = !!pendingQuestion;
+  const engaged = pending || turns.length > 0;
+  useEffect(() => {
+    if (pendingQuestion) pendingAnchor.current?.scrollIntoView({ behavior: "instant", block: "center" });
+  }, [pendingQuestion]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,12 +101,12 @@ function Savia() {
         <span><span className="savia-signal" aria-hidden="true" /> Savia · Telúrica</span>
         <Link to="/fuentes"><ShieldCheck className="size-4" aria-hidden="true" /> Fuentes de los datos</Link>
       </header>
-      <section className={turns.length ? "savia-intro savia-intro-compact" : "savia-intro"} aria-labelledby="savia-title">
+      <section className={engaged ? "savia-intro savia-intro-compact" : "savia-intro"} aria-labelledby="savia-title">
         <div className="savia-orb" aria-hidden="true"><span /><Bot /></div>
         <p className="savia-eyebrow">Tu observatorio, en una conversación</p>
         <h1 id="savia-title">Hola, soy Savia.</h1>
         <p>Pregunta por Panamá. Exploremos sus datos con <span>tablas, gráficas y mapas.</span></p>
-        {!turns.length && <div className="savia-starters">
+        {!engaged && <div className="savia-starters">
           {SUGGESTIONS.map((suggestion, index) => {
             const Icon = icons[index] ?? Sparkles;
             return <button key={suggestion} type="button" disabled={pending || !hydrated} onClick={() => { setQuestion(suggestion); input.current?.focus(); }}>
@@ -126,7 +131,7 @@ function Savia() {
             </article>
           ))}
         </div>
-        {pending && <div className="savia-turn"><div className="savia-user-message"><h2>{pendingQuestion}</h2></div><SaviaThinking phase={phase} /></div>}
+        {pending && <div className="savia-turn"><div className="savia-user-message"><h2>{pendingQuestion}</h2></div><div ref={pendingAnchor}><SaviaThinking phase={phase} /></div></div>}
       </section>
 
       <form action="/api/chat" method="post" onSubmit={submit} aria-label="Pregunta a Savia" className="savia-composer">
