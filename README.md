@@ -135,8 +135,8 @@ Configura exclusivamente en el proyecto Telúrica del equipo autorizado de Verce
 | Variable | Uso |
 | --- | --- |
 | `NVIDIA_API_KEY` | Clave privada NVIDIA |
-| `UPSTASH_REDIS_REST_URL` | URL HTTPS del almacén persistente |
-| `UPSTASH_REDIS_REST_TOKEN` | Token privado Redis REST |
+| `UPSTASH_REDIS_REST_URL` o `KV_REST_API_URL` | URL HTTPS del almacén persistente |
+| `UPSTASH_REDIS_REST_TOKEN` o `KV_REST_API_TOKEN` | Token privado Redis REST |
 | `SAVIA_HASH_SECRET` | Secreto aleatorio de al menos 32 caracteres para anonimizar IP |
 | `SAVIA_ENABLED` | `true` para activar después de configurar las protecciones |
 
