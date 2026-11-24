@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { assistantInput, isSeismicQuestion } from "@/features/assistant/contract";
 import { ChatError, isConfigured, reserve } from "@/features/assistant/budget.server";
+import { getSeismicData, getTsunamiBulletins } from "@/features/seismic/seismic.functions";
+import type { SourceStatus } from "@/features/seismic/types";
 import { handleAssistant, assistantStatus } from "@/features/assistant/chat.server";
 
 vi.mock("@/features/seismic/seismic.functions", () => ({
@@ -80,5 +82,60 @@ describe("Savia security boundaries", () => {
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: "unavailable" }, { status: 503 })));
     await expect(reserve(new Request("https://telurica.vercel.app", { headers: { "x-vercel-forwarded-for": "1.2.3.4" } }))).rejects.toMatchObject({ status: 503 });
+  });
+});
+
+describe("Savia grounded response", () => {
+  function configure(providerContent: string) {
+    vi.stubEnv("SAVIA_ENABLED", "true");
+    vi.stubEnv("NVIDIA_API_KEY", "test-secret-never-send-to-browser");
+    vi.stubEnv("SAVIA_HASH_SECRET", "test-hmac-secret-at-least-32-characters");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "test-redis-token");
+    const source: SourceStatus = {
+      id: "usgs", name: "USGS", url: "https://earthquake.usgs.gov/",
+      serviceType: "API", method: "HTTP", state: "operativa", lastAttemptAt: null,
+      lastSuccessAt: null, durationMs: 10, received: 0, error: null,
+    };
+    vi.mocked(getSeismicData).mockResolvedValue({
+      events: [], excludedOutside: 0, sources: [source], generatedAt: "2026-11-23T12:00:00.000Z",
+      range: { start: "2026-11-16T12:00:00.000Z", end: "2026-11-23T12:00:00.000Z" },
+    });
+    vi.mocked(getTsunamiBulletins).mockResolvedValue({ bulletins: [], source: { ...source, id: "noaa", name: "NOAA" } });
+    const fetch = vi.fn(async (url: string, init: RequestInit) => {
+      if (url === "https://redis.example") {
+        const command = JSON.parse(init.body as string);
+        return Response.json({ result: command[0] === "GET" ? null : 1 });
+      }
+      expect(url).toBe("https://integrate.api.nvidia.com/v1/chat/completions");
+      const body = JSON.parse(init.body as string);
+      expect(body.max_tokens).toBe(900);
+      expect(body.chat_template_kwargs.enable_thinking).toBe(false);
+      expect(body.messages).toHaveLength(2);
+      expect(body.messages[1].content).not.toContain("test-secret-never-send-to-browser");
+      return Response.json({ choices: [{ message: { content: providerContent } }] });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const r = request({ question: "Resume los sismos de Panamá esta semana", period: "7d" });
+    r.headers.set("x-vercel-forwarded-for", "1.2.3.4");
+    return { r, fetch };
+  }
+
+  it("returns authoritative counters and sources with bounded inference and no secrets", async () => {
+    const { r, fetch } = configure(JSON.stringify({ answer: "Sin registros en el período consultado.", inScope: true }));
+    const response = await handleAssistant(r);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.total).toBe(0);
+    expect(body.sources.map((source: { name: string }) => source.name)).toEqual(["USGS", "NOAA"]);
+    expect(JSON.stringify(body)).not.toContain("test-secret");
+    expect(fetch.mock.calls.filter(([url]) => url.includes("nvidia"))).toHaveLength(1);
+  });
+
+  it("rejects unstructured or off-topic provider output", async () => {
+    const malformed = configure(JSON.stringify({ answer: "Sin datos", inScope: true, tool: "execute" }));
+    expect((await handleAssistant(malformed.r)).status).toBe(502);
+    const unrelated = configure(JSON.stringify({ answer: "Tema ajeno", inScope: false }));
+    expect((await handleAssistant(unrelated.r)).status).toBe(422);
   });
 });
