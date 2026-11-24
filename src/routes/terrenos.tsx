@@ -1,3 +1,4 @@
+import { createClientOnlyFn } from "@tanstack/react-start";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/terrenos")({
   head: () => ({ meta: [{ title: "Explorar terrenos de Panamá · Telúrica" }, { name: "description", content: "Relieve y edificios 3D, sismicidad cercana y ficha preliminar de un terreno en Panamá. Datos públicos y estudios pendientes." }] }),
   component: Terrenos,
 });
+
+const readElevation = createClientOnlyFn(async (point: TerrainPoint, signal: AbortSignal) => (await import("@/features/terrain/elevation.client")).readTerrain(point, signal));
 
 const EMPTY_EVENTS: import("@/features/seismic/types").SeismicEvent[] = [];
 
@@ -52,8 +55,8 @@ function Terrenos() {
     const controller = new AbortController();
     setReading(null); setElevationState("loading"); setElevationError("");
     const timer = window.setTimeout(() => {
-      void import("@/features/terrain/elevation.client").then(module => module.readTerrain(point, controller.signal))
-        .then(value => { if (!controller.signal.aborted) { setReading(value); setElevationState("ready"); } })
+      void Promise.resolve(readElevation(point, controller.signal))
+        .then(value => { if (value && !controller.signal.aborted) { setReading(value); setElevationState("ready"); } })
         .catch(reason => { if (!controller.signal.aborted) { setElevationState("error"); setElevationError(reason instanceof Error ? reason.message : "La elevación no está disponible."); } });
     }, 450);
     return () => { controller.abort(); window.clearTimeout(timer); };
