@@ -65,7 +65,7 @@ function Terrenos() {
   function choose(next: TerrainPoint) {
     const problem = pointProblem(next);
     if (problem) { setError(problem); return; }
-    setError(""); setPoint(next); setLatitude(next.latitude.toFixed(6)); setLongitude(next.longitude.toFixed(6));
+    setError(""); setReading(null); setElevationState("loading"); setPoint(next); setLatitude(next.latitude.toFixed(6)); setLongitude(next.longitude.toFixed(6));
     void navigate({ search: { lat: Number(next.latitude.toFixed(6)), lon: Number(next.longitude.toFixed(6)) }, replace: true });
   }
   function locate() {
