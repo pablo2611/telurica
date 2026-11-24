@@ -17,7 +17,10 @@ import { Route as FuentesRouteImport } from './routes/fuentes'
 import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as MonitorRouteImport } from './routes/monitor'
 import { Route as ResumenRouteImport } from './routes/resumen'
+import { Route as SaviaRouteImport } from './routes/savia'
 import { Route as TectonicaRouteImport } from './routes/tectonica'
+import { Route as TerrenosRouteImport } from './routes/terrenos'
+import { Route as ApiChatRouteImport } from './routes/api.chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,9 +62,24 @@ const ResumenRoute = ResumenRouteImport.update({
   path: '/resumen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SaviaRoute = SaviaRouteImport.update({
+  id: '/savia',
+  path: '/savia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TectonicaRoute = TectonicaRouteImport.update({
   id: '/tectonica',
   path: '/tectonica',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerrenosRoute = TerrenosRouteImport.update({
+  id: '/terrenos',
+  path: '/terrenos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -74,7 +92,10 @@ export interface FileRoutesByFullPath {
   '/historial': typeof HistorialRoute
   '/monitor': typeof MonitorRoute
   '/resumen': typeof ResumenRoute
+  '/savia': typeof SaviaRoute
   '/tectonica': typeof TectonicaRoute
+  '/terrenos': typeof TerrenosRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,7 +106,10 @@ export interface FileRoutesByTo {
   '/historial': typeof HistorialRoute
   '/monitor': typeof MonitorRoute
   '/resumen': typeof ResumenRoute
+  '/savia': typeof SaviaRoute
   '/tectonica': typeof TectonicaRoute
+  '/terrenos': typeof TerrenosRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,7 +121,10 @@ export interface FileRoutesById {
   '/historial': typeof HistorialRoute
   '/monitor': typeof MonitorRoute
   '/resumen': typeof ResumenRoute
+  '/savia': typeof SaviaRoute
   '/tectonica': typeof TectonicaRoute
+  '/terrenos': typeof TerrenosRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +137,10 @@ export interface FileRouteTypes {
     | '/historial'
     | '/monitor'
     | '/resumen'
+    | '/savia'
     | '/tectonica'
+    | '/terrenos'
+    | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,7 +151,10 @@ export interface FileRouteTypes {
     | '/historial'
     | '/monitor'
     | '/resumen'
+    | '/savia'
     | '/tectonica'
+    | '/terrenos'
+    | '/api/chat'
   id:
     | '__root__'
     | '/'
@@ -132,7 +165,10 @@ export interface FileRouteTypes {
     | '/historial'
     | '/monitor'
     | '/resumen'
+    | '/savia'
     | '/tectonica'
+    | '/terrenos'
+    | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,7 +180,10 @@ export interface RootRouteChildren {
   HistorialRoute: typeof HistorialRoute
   MonitorRoute: typeof MonitorRoute
   ResumenRoute: typeof ResumenRoute
+  SaviaRoute: typeof SaviaRoute
   TectonicaRoute: typeof TectonicaRoute
+  TerrenosRoute: typeof TerrenosRoute
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,11 +244,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResumenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/savia': {
+      id: '/savia'
+      path: '/savia'
+      fullPath: '/savia'
+      preLoaderRoute: typeof SaviaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tectonica': {
       id: '/tectonica'
       path: '/tectonica'
       fullPath: '/tectonica'
       preLoaderRoute: typeof TectonicaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terrenos': {
+      id: '/terrenos'
+      path: '/terrenos'
+      fullPath: '/terrenos'
+      preLoaderRoute: typeof TerrenosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -224,7 +284,10 @@ const rootRouteChildren: RootRouteChildren = {
   HistorialRoute: HistorialRoute,
   MonitorRoute: MonitorRoute,
   ResumenRoute: ResumenRoute,
+  SaviaRoute: SaviaRoute,
   TectonicaRoute: TectonicaRoute,
+  TerrenosRoute: TerrenosRoute,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
