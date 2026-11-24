@@ -19,7 +19,7 @@
 |---|---|---|
 | Esri World Imagery | `server.arcgisonline.com/.../World_Imagery/MapServer/tile/{z}/{y}/{x}` | Vista satelital |
 | Esri Reference | `.../Reference/World_Boundaries_and_Places/...` | Etiquetas sobre satélite |
-| CARTO | `basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png` | Mapa oscuro |
+| OpenStreetMap | `tile.openstreetmap.org/{z}/{x}/{y}.png` | Mapa oscuro con tratamiento raster en el navegador |
 | AWS Terrain Tiles | `s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png` | Relieve 3D (terrarium) |
 
 ## Daños e impacto y noticias
