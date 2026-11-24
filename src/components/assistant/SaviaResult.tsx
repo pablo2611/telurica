@@ -106,7 +106,7 @@ export function SaviaResult({ reply, question }: { reply: AssistantReply; questi
             className="h-80 rounded-xl sm:h-[420px]" padding={{ top: 28, bottom: 28, left: 28, right: 28 }}
             onSelect={id => {
               const event = reply.events.find(item => item.id === id);
-              if (event) void navigate({ to: "/monitor", search: { event: event.id, lat: event.primary.latitude, lon: event.primary.longitude } });
+              if (event) void navigate({ to: "/monitor", search: { event: event.id, period: reply.period ?? "30d", lat: event.primary.latitude, lon: event.primary.longitude } });
             }} />
           <p className="savia-footnote">Densidad observada de epicentros{reply.mapTruncated ? " · muestra de los 300 registros más recientes" : ""}. Los colores describen este catálogo y período. La evaluación de un terreno requiere estudios geotécnicos y revisión profesional.</p>
           <Link to="/monitor" className="savia-text-button">Explorar en el Monitor</Link>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PeriodId } from "@/features/seismic/periods";
 import type { SeismicEvent } from "@/features/seismic/types";
 
 export const assistantInput = z.object({
@@ -11,6 +12,7 @@ export type AssistantInput = z.infer<typeof assistantInput>;
 export interface AssistantReply {
   answer: string;
   presentation?: Presentation;
+  period?: PeriodId;
   mode: "ai" | "catalog";
   generatedAt: string;
   range: { start: string; end: string };

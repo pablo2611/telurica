@@ -7,7 +7,7 @@ import { SeismicMap, MagLegend, type MapLayers, type MapView } from "@/component
 import { EventDetail, MagValue, PeriodSwitch, magBg } from "@/components/seismic/bits";
 import { LiveBadge } from "@/components/seismic/live";
 import { useSeismicPeriod } from "@/features/seismic/queries";
-import { periodById, type PeriodId } from "@/features/seismic/periods";
+import { PERIODS, periodById, type PeriodId } from "@/features/seismic/periods";
 import { fmtDate, fmtNum, fmtRelative, fmtTime, placeOf } from "@/features/seismic/format";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -26,13 +26,15 @@ export const Route = createFileRoute("/monitor")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { fault?: string; plate?: string; event?: string; lat?: number; lon?: number } => {
+  validateSearch: (search: Record<string, unknown>): { fault?: string; plate?: string; event?: string; lat?: number; lon?: number; period?: PeriodId } => {
     const fault = FAULTS.find((item) => item.id === search["fault"]);
     const plate = PLATES.find((item) => item.id === search["plate"]);
     const event = search["event"];
+    const period = PERIODS.find(item => item.id === search["period"]);
     const lat = search["lat"];
     const lon = search["lon"];
     return {
+      ...(period && { period: period.id }),
       ...(fault && { fault: fault.id }),
       ...(plate && { plate: plate.id }),
       ...(typeof event === "string" && /^(usgs|emsc):[a-z0-9._-]{1,100}$/i.test(event) && { event }),
@@ -70,12 +72,12 @@ function Timeline({ events, start, end, selectedId, onSelect }: { events: Seismi
 }
 
 function Monitor() {
-  const { fault, plate, event, lat, lon } = Route.useSearch();
+  const { fault, plate, event, lat, lon, period: linkedPeriod } = Route.useSearch();
   const navigate = useNavigate({ from: "/monitor" });
   const realtime = useRealtime();
   const focusedFault = FAULTS.find((item) => item.id === fault);
   const focusedPlate = PLATES.find((item) => item.id === plate);
-  const [period, setPeriod] = useState<PeriodId>("30d");
+  const [period, setPeriod] = useState<PeriodId>(linkedPeriod ?? "30d");
   const [minMag, setMinMag] = useState(0);
   const [layers, setLayers] = useState<MapLayers>({ panama: true, maritima: true, provinces: true });
   const [view, setView] = useState<MapView>({ basemap: "satellite", terrain: false, faults: true, columns: false, heat: false });
@@ -115,10 +117,11 @@ function Monitor() {
   };
   useEffect(() => {
     if (!event) return;
+    if (linkedPeriod) setPeriod(linkedPeriod);
     setSelectedId(null);
     setToolsOpen(false);
     setTimelineOpen(false);
-  }, [event]);
+  }, [event, linkedPeriod]);
   const start = data ? Date.parse(data.range.start) : Date.now() - 86400_000;
   const end = data ? Date.parse(data.range.end) : Date.now();
 

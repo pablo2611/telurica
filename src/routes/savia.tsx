@@ -60,7 +60,7 @@ function Savia() {
       if (controller.signal.aborted) return;
       sequence.current += 1;
       const id = sequence.current;
-      setTurns(previous => [...previous, { id, question: submitted, reply }]);
+      setTurns(previous => [...previous, { id, question: submitted, reply: { ...reply, period: requestedPeriod(data) } }]);
       setQuestion("");
       setPeriod(requestedPeriod(data));
       requestAnimationFrame(() => resultAnchor.current?.scrollIntoView({ behavior: "instant", block: "start" }));
