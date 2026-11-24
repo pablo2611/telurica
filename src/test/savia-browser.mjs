@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+const { chromium } = await import(process.env["SAVIA_BROWSER_MODULE"] ?? "playwright");
 import { mkdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 

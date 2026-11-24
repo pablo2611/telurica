@@ -16,9 +16,11 @@ jobs:
       - run: npm run build
       - name: Install browser tools in the GitHub runner
         run: |
-          npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npm install --prefix /tmp/savia-browser playwright@1.56.1
+          /tmp/savia-browser/node_modules/.bin/playwright install --with-deps chromium
       - name: Verify chat on mobile and desktop
+        env:
+          SAVIA_BROWSER_MODULE: /tmp/savia-browser/node_modules/playwright/index.mjs
         run: |
           npm run start > /tmp/telurica-browser.log 2>&1 &
           trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
